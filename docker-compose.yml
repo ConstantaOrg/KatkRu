@@ -1,0 +1,73 @@
+services:
+  es01:
+    container_name: es01
+    image: docker.elastic.co/elasticsearch/elasticsearch:9.0.2
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200 || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+
+    environment:
+      - node.name=es01
+      - discovery.type=single-node
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
+
+      - xpack.security.enabled=false
+      - xpack.security.http.ssl.enabled=false
+      - xpack.security.transport.ssl.enabled=false
+
+    volumes:
+      - esdata01:/usr/share/elasticsearch/data
+    mem_limit: 3g
+    networks:
+      net_con:
+
+  pg_db:
+    container_name: pg_db
+    image: postgres:16
+    environment:
+      - POSTGRES_USER=${PG_USER}
+      - POSTGRES_PASSWORD=${PG_PASSWORD}
+      - POSTGRES_DB=${PG_DB}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${PG_USER}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      - secrets/dumps:/docker-entrypoint-initdb.d/marketplace_db_backup.sql
+    networks:
+      net_con:
+
+  web_app:
+    build: .
+    command: python core/main.py
+    environment:
+      - ENV_FILE=/run/secrets/.env
+    depends_on:
+      pg_db:
+        condition: service_healthy
+      es01:
+        condition: service_healthy
+    secrets:
+      - .env
+    networks:
+      net_con:
+
+
+volumes:
+  esdata01:
+    driver: local
+  pg_data:
+    driver: local
+
+networks:
+  net_con:
+    driver: bridge
+    name: katk_net
+
+secrets:
+  .env:
+    file: .env

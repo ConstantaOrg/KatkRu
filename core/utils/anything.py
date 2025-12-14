@@ -12,7 +12,7 @@ def create_log_dirs():
 from starlette.requests import Request
 from starlette.websockets import WebSocket
 
-from core.config import trusted_proxies
+from core.config_dir.config import trusted_proxies
 
 
 def get_client_ip(request: Request | WebSocket):

@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
 
 from core.api import main_router
-from core.config import pool_settings
+from core.config_dir.config import pool_settings
 from core.utils.logger import log_event
 
 
