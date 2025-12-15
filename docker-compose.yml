@@ -1,13 +1,12 @@
 services:
   es01:
     container_name: es01
-    image: docker.elastic.co/elasticsearch/elasticsearch:9.0.2
+    image: docker.elastic.co/elasticsearch/elasticsearch:${ELASTIC_VERSION}
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:9200 || exit 1"]
-      interval: 5s
-      timeout: 5s
+      interval: 8s
+      timeout: 10s
       retries: 15
-
     environment:
       - node.name=es01
       - discovery.type=single-node
@@ -16,10 +15,34 @@ services:
       - xpack.security.enabled=false
       - xpack.security.http.ssl.enabled=false
       - xpack.security.transport.ssl.enabled=false
-
     volumes:
       - esdata01:/usr/share/elasticsearch/data
     mem_limit: 3g
+    ports:
+      - '9200:9200'
+    networks:
+      net_con:
+
+  kibana01:
+    container_name: kibana
+    image: docker.elastic.co/kibana/kibana:${ELASTIC_VERSION}
+    environment:
+      - SERVERNAME=kibana
+      - ELASTICSEARCH_HOSTS=http://es01:9200
+      - ELASTICSEARCH_USERNAME=kibana_system
+      - ELASTICSEARCH_PASSWORD=${KIBANA_PASSWORD}
+    depends_on:
+      es01:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s -I http://localhost:5601 | grep -q 'HTTP/1.1 302 Found'"]
+      interval: 8s
+      timeout: 10s
+      retries: 15
+    volumes:
+      - kibana01:/usr/share/kibana/data
+    ports:
+      - '5601:5601'
     networks:
       net_con:
 
@@ -37,13 +60,12 @@ services:
       retries: 10
     volumes:
       - pg_data:/var/lib/postgresql/data
-      - secrets/dumps:/docker-entrypoint-initdb.d/marketplace_db_backup.sql
+      - ./secrets/dumps:/docker-entrypoint-initdb.d
     networks:
       net_con:
 
   web_app:
     build: .
-    command: python core/main.py
     environment:
       - ENV_FILE=/run/secrets/.env
     depends_on:
@@ -51,13 +73,22 @@ services:
         condition: service_healthy
       es01:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
     secrets:
       - .env
+    ports:
+      - '8000:8100'
     networks:
       net_con:
 
 
 volumes:
+  kibana01:
+    driver: local
   esdata01:
     driver: local
   pg_data:

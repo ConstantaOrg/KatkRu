@@ -7,7 +7,7 @@ from starlette.middleware.cors import CORSMiddleware
 
 from core.api import main_router
 from core.config_dir.config import pool_settings
-from core.utils.logger import log_event
+
 
 
 @asynccontextmanager
@@ -32,6 +32,6 @@ app.add_middleware(
 )
 
 
-log_event('старт апп')
+
 if __name__ == '__main__':
     uvicorn.run('core.main:app', host="0.0.0.0", port=8000, log_config=None)

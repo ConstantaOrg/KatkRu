@@ -17,10 +17,10 @@ environment_files = (
     os.getenv('ENV_LOCAL_TEST_FILE') or
     '.env'
 )
-logging.critical(f'\033[35m{environment_files}\033[0m')
 load_dotenv(environment_files, override=True)
+logging.critical(f'\033[35m{environment_files}\033[0m | \033[32m{os.getenv("APP_MODE")}\033[0m')
 
-WORKDIR = Path(__file__).resolve().parent.parent
+WORKDIR = Path(__file__).resolve().parent.parent.parent
 
 
 class Settings(BaseSettings):
@@ -57,10 +57,10 @@ env = get_env_vars()
 
 
 "PostgreSQL"
-def get_pg_settings(settings: Settings):
-    cfg = APP_MODE_CONFIG[settings.app_mode]
-    host = getattr(settings, cfg["pg_host"])
-    port = getattr(settings, cfg["pg_port"])
+def get_pg_settings(envs: Settings):
+    cfg = APP_MODE_CONFIG[envs.app_mode]
+    host = getattr(envs, cfg["pg_host"])
+    port = getattr(envs, cfg["pg_port"])
 
     return {"host": host, "port": port}
 
@@ -87,11 +87,10 @@ def get_elastic_settings(settings: Settings) -> dict:
         "basic_auth": (settings.elastic_user, settings.elastic_password),
         "verify_certs": False,
     }
-
     if cert:
         es_settings["ca_certs"] = cert
-
     return es_settings
+
 
 async def get_elastic_client():
     es_client = AsyncElasticsearch(**get_elastic_settings(env))
@@ -99,5 +98,4 @@ async def get_elastic_client():
         yield es_client
     finally:
         await es_client.close()
-
 ElasticDep = Annotated[AsyncElasticsearch, Depends(get_elastic_client)]
