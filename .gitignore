@@ -166,3 +166,4 @@ logs/
 .venv/
 secrets/
 .vscode/
+*.docx
