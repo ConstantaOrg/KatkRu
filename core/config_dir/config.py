@@ -12,13 +12,14 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from core.config_dir.env_modes import AppMode, APP_MODE_CONFIG
 
+
 environment_files = (
     os.getenv('ENV_FILE') or
     os.getenv('ENV_LOCAL_TEST_FILE') or
     '.env'
 )
 load_dotenv(environment_files, override=True)
-logging.critical(f'\033[35m{environment_files}\033[0m | \033[32m{os.getenv("APP_MODE")}\033[0m')
+logging.critical(f'\033[35m{environment_files}\033[0m | \033[33m{os.getenv("APP_MODE")}\033[0m')
 
 WORKDIR = Path(__file__).resolve().parent.parent.parent
 
@@ -44,8 +45,9 @@ class Settings(BaseSettings):
 
     search_index: str
 
-    trusted_proxies: set[str] =  {'127.0.0.1', '172.25.0.1'}
     app_mode: AppMode
+    es_init: bool
+    trusted_proxies: set[str] =  {'127.0.0.1', '172.25.0.1'}
 
     model_config = SettingsConfigDict(extra='allow')
 
@@ -84,11 +86,10 @@ def get_elastic_settings(settings: Settings) -> dict:
     es_link = f"{scheme}://{host}:{settings.elastic_port}"
     es_settings = {
         "hosts": [es_link],
-        "basic_auth": (settings.elastic_user, settings.elastic_password),
-        "verify_certs": False,
+        # "basic_auth": (settings.elastic_user, settings.elastic_password),
+        # "ca_certs": cert,
+        # "verify_certs": False,
     }
-    if cert:
-        es_settings["ca_certs"] = cert
     return es_settings
 
 

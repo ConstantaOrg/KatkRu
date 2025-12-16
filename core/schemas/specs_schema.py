@@ -12,7 +12,7 @@ class ExtSpecialitySchema(BaseModel):
     id: int
 
 
-class BaseSpecSearchSchema(SpecsPaginSchema):
+class BaseSpecSearchSchema(BaseModel):
     search_term: str
 
 class AutocompleteSearchSchema(BaseSpecSearchSchema):

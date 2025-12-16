@@ -14,6 +14,7 @@ RUN groupadd -r appuser && useradd -r -g appuser appuser
 WORKDIR /app
 COPY --from=builder /root/.local /home/appuser/.local
 COPY --chown=appuser:appuser . /app
+COPY --chown=appuser:appuser ./secrets/certs/* /usr/local/share/ca-certificates
 
 ENV PATH=/home/appuser/.local/bin:$PATH
 ENV PYTHONPATH=/app

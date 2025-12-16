@@ -6,13 +6,19 @@ from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
 
 from core.api import main_router
-from core.config_dir.config import pool_settings
-
+from core.api.elastic_search import init_elasticsearch_index
+from core.config_dir.config import pool_settings, env
 
 
 @asynccontextmanager
 async def lifespan(web_app):
+    """"""
+    "Соединение с БД"
     web_app.state.pg_pool = await create_pool(**pool_settings)
+
+    "Иниц. индекса в Elasticsearch"
+    if env.es_init:
+        await init_elasticsearch_index("specs_index", web_app.state.pg_pool)
     try:
         yield
     finally:

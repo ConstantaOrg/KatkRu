@@ -28,7 +28,7 @@ settings = {
             "ngram_spec_search": {
                 "type": "custom",
                 "tokenizer": "standard",
-                "filter": ["lowercase", "russian_stop"]
+                "filter": ["lowercase", "russian_stop", "ngram_spec_filter"]
             }
         },
         "tokenizer": {
@@ -45,6 +45,11 @@ settings = {
                 "min_gram": 2,
                 "max_gram": 15,
                 "token_chars": ["letter"]
+            },
+            "russian_stop": {
+                "type": "stop",
+                "ignore_case": True,
+                "stopwords": "_russian_"
             }
         }
     }
@@ -73,14 +78,14 @@ mappings = {
 
 
 def search_ptn(search_phrase: str, search_mode: Literal["auto", "deep"]):
-    query_deep_search = {
+    query_autocomplete = {
         "multi_match": {
           "query": search_phrase,
           "fields": ["code_prefix^3" ,"spec_title_prefix"],
           "type": "bool_prefix"
         }
     }
-    query_autocomplete = {
+    query_deep_search = {
         "match": {
           "spec_title_search": {
             "query": search_phrase,
