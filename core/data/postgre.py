@@ -5,13 +5,14 @@ from fastapi.params import Depends
 from starlette.requests import Request
 
 from core.data.sql_queries.specialties_sql import SpecsQueries
+from core.data.sql_queries.ttable_sql import TimetableQueries
 
 
 class PgSql:
     def __init__(self, conn: Connection):
         self.conn = conn
         self.specialties = SpecsQueries(conn)
-
+        self.ttable = TimetableQueries(conn)
 
 
 async def get_pg_pool(request: Request):

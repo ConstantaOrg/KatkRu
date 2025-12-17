@@ -7,6 +7,7 @@ from starlette.middleware.cors import CORSMiddleware
 
 from core.api import main_router
 from core.api.elastic_search import init_elasticsearch_index
+from core.api.one_time_scripts import unnecessary_router
 from core.config_dir.config import pool_settings, env
 
 
@@ -27,6 +28,7 @@ async def lifespan(web_app):
 app = FastAPI(docs_url='/api/docs', openapi_url='/api/openapi.json', lifespan=lifespan)
 
 app.include_router(main_router)
+app.include_router(unnecessary_router)
 
 "Миддлвари"
 app.add_middleware(

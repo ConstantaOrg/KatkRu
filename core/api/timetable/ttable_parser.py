@@ -59,7 +59,7 @@ def ttable_doc_processer(semester: Literal[1, 2], doc_path: Path | str = "ttable
 
                 "Прочие нужные данные"
                 parts = subject.split("\n")
-                discipline = parts[0]
+                discipline = parts[0].replace('  ', ' ') # иногда бывают пробелы X2
 
                 teachers = []
                 "1. Пробуем явную строку преподавателя"
@@ -67,10 +67,12 @@ def ttable_doc_processer(semester: Literal[1, 2], doc_path: Path | str = "ttable
                     teachers = extract_teachers(parts[1])
                 "2. Fallback — ищем во всём тексте"
                 if not teachers:
-                    teachers = extract_teachers(subject)
+                    "Убираем ФИО учителей из названия дисциплины"
+                    teachers = extract_teachers(subject) # достаём список учителей
+                    discipline_wo_teachers = discipline.split(' ')[:-(len(teachers)*2)] # Убираем инициалы и фамилии
+                    discipline = ' '.join(discipline_wo_teachers)
 
-
-                schedule[group][current_day][pair_num] = {
+                schedule[group.upper()][current_day][pair_num] = {
                     "discipline": discipline,
                     "auditory": auditory.replace("\n", ", "),
                     "teachers": teachers,
