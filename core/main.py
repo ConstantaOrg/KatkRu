@@ -2,13 +2,16 @@ from contextlib import asynccontextmanager
 
 import uvicorn
 from asyncpg import create_pool
+from elasticsearch import AsyncElasticsearch
 from fastapi import FastAPI
+from redis.asyncio import Redis
 from starlette.middleware.cors import CORSMiddleware
 
 from core.api import main_router
 from core.api.elastic_search import init_elasticsearch_index
+from core.api.middleware import AuthUXMiddleware, LoggingTimeMiddleware
 from core.api.one_time_scripts import unnecessary_router
-from core.config_dir.config import pool_settings, env
+from core.config_dir.config import pool_settings, env, es_settings, redis_settings
 
 
 @asynccontextmanager
@@ -16,14 +19,20 @@ async def lifespan(web_app):
     """"""
     "Соединение с БД"
     web_app.state.pg_pool = await create_pool(**pool_settings)
+    "Соединение с Эластиком"
+    web_app.state.es_client = AsyncElasticsearch(**es_settings)
+    "Соединение с Редисом"
+    web_app.state.redis = Redis(**redis_settings, decode_responses=True)
 
     "Иниц. индекса в Elasticsearch"
     if env.es_init:
-        await init_elasticsearch_index("specs_index", web_app.state.pg_pool)
+        await init_elasticsearch_index("specs_index", web_app.state.pg_pool, web_app.state.es_client)
     try:
         yield
     finally:
         await web_app.state.pg_pool.close()
+        await web_app.state.es_client.close()
+        await web_app.state.redis.close()
 
 app = FastAPI(docs_url='/api/docs', openapi_url='/api/openapi.json', lifespan=lifespan)
 
@@ -38,7 +47,9 @@ app.add_middleware(
     allow_methods=['*'],
     allow_headers=['*']
 )
-
+"ПЕРЕПИСАТЬ НА ASGI-Middleware"
+app.add_middleware(AuthUXMiddleware)
+app.add_middleware(LoggingTimeMiddleware)
 
 
 if __name__ == '__main__':

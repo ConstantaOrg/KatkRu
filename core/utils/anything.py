@@ -1,6 +1,24 @@
+from dataclasses import dataclass
 from pathlib import Path
 
 from core.config_dir.config import env
+
+default_avatar = '/users/avatars/default_picture.png'
+
+@dataclass
+class TokenTypes:
+    access_token: str = 'aT'
+    refresh_token: str = 'rT'
+    ws_token: str = 'wT'
+
+token_types = {
+    'access_token': 'aT',
+    'refresh_token': 'rT',
+    'ws_token': 'wT'
+}
+
+def hide_log_param(param, start=3, end=8):
+    return param[:start] + '*' * len(param[start:-end-1]) + param[-end:]
 
 
 def create_log_dirs():

@@ -1,4 +1,17 @@
 services:
+  redis:
+    image: redis:7.2-alpine
+    container_name: redis
+    command: redis-server --requirepass ${REDIS_PASSWORD} --appendonly yes
+    ports:
+      - "6378:6379"
+    volumes:
+      - redis_data:/data
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+    networks:
+      - net_con
+
   es01:
     container_name: es01
     image: docker.elastic.co/elasticsearch/elasticsearch:${ELASTIC_VERSION}
@@ -92,6 +105,8 @@ volumes:
   esdata01:
     driver: local
   pg_data:
+    driver: local
+  redis_data:
     driver: local
 
 networks:
