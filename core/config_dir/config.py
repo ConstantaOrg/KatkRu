@@ -14,6 +14,7 @@ from pydantic import BaseModel
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from starlette.requests import Request
+from starlette.responses import Response
 
 from core.config_dir.env_modes import AppMode, APP_MODE_CONFIG
 

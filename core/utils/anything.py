@@ -17,6 +17,16 @@ token_types = {
     'ws_token': 'wT'
 }
 
+@dataclass
+class TimetableTypes:
+    standard: str = 'standard'
+    replaces: str = 'replacements'
+
+@dataclass
+class TimetableVerStatuses:
+    accepted: int = 1
+    pending: int = 2
+
 def hide_log_param(param, start=3, end=8):
     return param[:start] + '*' * len(param[start:-end-1]) + param[-end:]
 

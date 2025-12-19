@@ -102,7 +102,10 @@ async def issue_aT_rT(db: PgSqlDep, token_schema: TokenPayloadSchema):
 
 
 async def reissue_aT(access_token: dict, refresh_token: str, db: PgSqlDep):
-    sub, s_id = access_token.values()
+    sub, s_id = access_token.get('sub'), access_token.get('s_id')
+    if s_id is None or sub is None:
+        return 401
+
     db_rT = await db.auth.get_actual_rt(int(sub), access_token['s_id'])
 
     if db_rT and secrets.compare_digest(db_rT['refresh_token'], refresh_token):

@@ -2,7 +2,8 @@ from fastapi import APIRouter, Response, Request, HTTPException
 
 from core.api.users.rate_limiter import rate_limit
 from core.data.postgre import PgSqlDep
-from core.config_dir.config import encryption, env
+from core.config_dir.config import encryption
+from core.schemas.cookie_settings_schema import AccToken, RtToken, JWTCookieDep
 from core.schemas.users_schema import TokenPayloadSchema, UserRegSchema, UserLogInSchema, UpdatePasswSchema
 from core.utils.anything import hide_log_param
 from core.utils.jwt_factory import issue_aT_rT
@@ -37,13 +38,8 @@ async def log_in(creds: UserLogInSchema, response: Response, db: PgSqlDep, reque
         )
         access_token, refresh_token = await issue_aT_rT(db, token_schema)
 
-        cookie_settings = {
-            'httponly': True,
-            'secure': True if env.app_mode == 'prod' else False,
-            'samesite': 'strict',
-        }
-        response.set_cookie('access_token', access_token, **cookie_settings, max_age=900) # 15 минут
-        response.set_cookie('refresh_token', refresh_token, **cookie_settings, max_age=15_552_000) # 180 дней
+        response.set_cookie('access_token', access_token, **AccToken().model_dump())
+        response.set_cookie('refresh_token', refresh_token, **RtToken().model_dump())
         log_event("Пользователь Вошёл в акк | user_id: %s", db_user['id'], request=request)
         return {'success': True, 'message': 'Куки у Юзера'}
     log_event(f"Пользователь с email: {hide_log_param(creds.email)} Не смог войти", request=request, level='WARNING')
@@ -72,3 +68,8 @@ async def reset_password(update_secrets: UpdatePasswSchema, db: PgSqlDep, reques
     await db.users.set_new_passw(update_secrets.user_id, hashed_passw)
     log_event(f"Юзер сменил Пароль | user_id: {update_secrets.user_id}", request=request, level='WARNING')
     return {'success': True, 'message': 'Пароль обновлён!'}
+
+
+@router.put('/private/users/any')
+def any_users(request: Request, _: JWTCookieDep):
+    return {'success': True, 'user_id': request.state.user_id, 'session_id': request.state.session_id}

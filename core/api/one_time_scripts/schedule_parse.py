@@ -74,7 +74,7 @@ async def bind_ids(db: PgSqlDep):
 
     return ttable
 
-@router.post('/create_sched_days')
+@router.post('/deprecated/create_sched_days')
 async def create_sched_days(db: PgSqlDep):
     with open(WORKDIR / 'ttable_25-26_ids_bind-teachers_disciplines.json', 'rb') as f:
         ttable = json.load(f)
