@@ -107,12 +107,12 @@ async def bind_groups_ids(db: PgSqlDep):
     return new_ttable
 
 
-@router.post('/accept_pairs_std_ttable_on_week')
+@router.post('/deprecated-19-12-25/accept_pairs_std_ttable_on_week')
 async def create_std_ttable_on_week(db: PgSqlDep):
     with open(WORKDIR / 'ttable_25-26_normalize_t_gr_d_ids.json', 'rb') as f:
         ttable = json.load(f)
 
-    rows = await db.conn.fetch("SELECT id, group_id, date FROM schedule_days ORDER BY id ASC")
+    rows = await db.conn.fetch("SELECT id, group_id FROM schedule_days ORDER BY id ASC")
     sched_map: dict[int, list[int]] = {}
 
     for r in rows:
@@ -151,7 +151,7 @@ async def create_std_ttable_on_week(db: PgSqlDep):
                     )
 
     if lessons_to_insert:
-        await db.conn.execute(
+        await db.conn.executemany(
             """
             INSERT INTO lessons
                 (sched_id, discipline_id, position, aud, teacher_id)
@@ -160,3 +160,49 @@ async def create_std_ttable_on_week(db: PgSqlDep):
             lessons_to_insert)
 
     return {"success": True, "inserted": len(lessons_to_insert)}
+
+
+@router.post('/accept_pairs_std_ttable_on_week')
+async def create_std_ttable_on_week(db: PgSqlDep):
+    with open(WORKDIR / 'ttable_25-26_normalize_t_gr_d_ids.json', 'rb') as f:
+        ttable = json.load(f)
+
+    lessons_to_insert = []
+
+    for group_id_str, days in ttable.items():
+        group_id = int(group_id_str)
+
+        for day_index, (_day_name, pairs) in enumerate(days.items()):
+            for position_str, payload in pairs.items():
+                position = int(position_str)
+                discipline_id = payload["discipline"]
+                aud = payload.get("auditory").split(',')
+                teachers = payload.get("teachers", [])
+
+                for idx, teacher_id in enumerate(teachers):
+                    lessons_to_insert.append(
+                        (
+                            2,
+                            group_id,
+                            discipline_id,
+                            position,
+                            aud[idx].strip(),
+                            teacher_id,
+                            day_index
+                        )
+                    )
+
+    if lessons_to_insert:
+        await db.conn.copy_records_to_table(
+            'std_ttable',
+            records=lessons_to_insert,
+            columns=[
+                'sched_ver_id',
+                'group_id',
+                'discipline_id',
+                'position',
+                'aud',
+                'teacher_id',
+                'week_day'
+            ]
+        )
