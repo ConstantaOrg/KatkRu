@@ -33,6 +33,7 @@ async def log_in(creds: UserLogInSchema, response: Response, db: PgSqlDep, reque
     if db_user and encryption.verify(creds.passw, db_user['passw']):
         token_schema = TokenPayloadSchema(
             id=db_user['id'],
+            role=db_user['role'],
             user_agent=request.headers.get('user-agent'),
             ip=request.state.client_ip,
         )

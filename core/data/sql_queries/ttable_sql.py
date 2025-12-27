@@ -1,3 +1,4 @@
+import datetime
 from types import NoneType
 
 from asyncpg import Connection
@@ -18,10 +19,10 @@ class TimetableQueries:
             date_filter = 't_v.schedule_date = $4'
             date_args = (date_start,)
 
-        group_filter = 'AND s_d.group_id = (SELECT g.id FROM groups g WHERE g.name = $2)'
+        group_filter = 'AND s_d.group_id = (SELECT g.id FROM groups g WHERE g.is_active = true AND g.name = $2)'
         if not isinstance(group, str):
             "Если указано несколько групп"
-            group_filter = 'AND s_d.group_id IN (SELECT id FROM groups WHERE name IN ANY($2))'
+            group_filter = 'AND s_d.group_id IN (SELECT id FROM groups WHERE is_active = true AND name IN ANY($2))'
             if isinstance(group, NoneType):
                 group_filter = ''
 
@@ -60,7 +61,7 @@ class TimetableQueries:
 
         "Фиксируем импорт расписания"
         ttable_ver_id = await self.conn.fetchrow(
-            'INSERT INTO ttable_versions (status_id, building_id, user_id, type) VALUES ($1, $2, $3, $4)  RETURNING id',
+            'INSERT INTO ttable_versions (status_id, building_id, user_id, type) VALUES ($1, $2, $3, $4) RETURNING id',
             TimetableVerStatuses.pending, building_id, user_id, TimetableTypes.standard
         )
         log_event(f"Зафиксировали импорт №{ttable_ver_id}. Вливаем данные")
@@ -81,3 +82,8 @@ class TimetableQueries:
         await self.conn.execute('COMMIT')
         log_event(f"Влили данные в расписание №{ttable_ver_id}. Транзакция успешна")
         return ttable_ver_id
+
+    async def create(self, building_id: int, date: datetime.date | None, type_: str, status: int, user_id: int):
+        query = 'INSERT INTO ttable_versions (building_id, schedule_date, type, status_id, user_id) VALUES ($1, $2, $3, $4, $5) RETURNING id'
+        res = await self.conn.fetchrow(query, building_id, date, type_, status, user_id)
+        return res

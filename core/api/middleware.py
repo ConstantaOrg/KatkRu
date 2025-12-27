@@ -42,6 +42,7 @@ class AuthUXASGIMiddleware:
         ip = get_client_ip(request)
 
         request.state.client_ip = ip
+        request.state.role = 'student'
         request.state.user_id = 1
         request.state.session_id = '1'
 
@@ -86,4 +87,5 @@ class AuthUXASGIMiddleware:
 
         request.state.user_id = int(access_token['sub'])
         request.state.session_id = access_token['s_id']
+        request.state.role = access_token['role']
         await self.app(scope, receive, send)

@@ -1,5 +1,6 @@
 import html
 import re
+from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator, EmailStr
 
@@ -37,6 +38,7 @@ class ValidatePasswSchema(BaseModel):
 
 class TokenPayloadSchema(BaseModel):
     id: int
+    role: Literal['methodist', 'read_all']
     user_agent: str = Field(max_length=200)
     ip: str = Field(max_length=45)  # IPv6 может быть до 45 символов
 

@@ -1,6 +1,9 @@
 from dataclasses import dataclass
 from pathlib import Path
 
+from starlette.requests import Request
+from starlette.websockets import WebSocket
+
 from core.config_dir.config import env
 
 default_avatar = '/users/avatars/default_picture.png'
@@ -27,6 +30,11 @@ class TimetableVerStatuses:
     accepted: int = 1
     pending: int = 2
 
+@dataclass
+class Roles:
+    methodist: str = 'methodist'
+    read_all: str = 'read_all'
+
 def hide_log_param(param, start=3, end=8):
     return param[:start] + '*' * len(param[start:-end-1]) + param[-end:]
 
@@ -37,11 +45,6 @@ def create_log_dirs():
     (LOG_DIR / 'info_warning_error').mkdir(exist_ok=True, parents=True)
     (LOG_DIR / 'critical').mkdir(exist_ok=True, parents=True)
     (LOG_DIR / 'debug').mkdir(exist_ok=True, parents=True)
-
-from starlette.requests import Request
-from starlette.websockets import WebSocket
-
-
 
 def get_client_ip(request: Request | WebSocket):
     "Доверяем заголовку от клиента, в тестах маст-хев"  # proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
