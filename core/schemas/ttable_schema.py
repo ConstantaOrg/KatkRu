@@ -5,7 +5,7 @@ from pydantic import Field, BaseModel, field_validator, ValidationError
 
 class ScheduleFilterSchema(BaseModel):
     building_id: int = Field(ge=1, le=3)
-    group: str
+    group: str | list[str] | None = None
     date_start: date = datetime.now().date()
     date_end: date | None = None
 

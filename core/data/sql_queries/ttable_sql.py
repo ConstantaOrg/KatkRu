@@ -1,3 +1,5 @@
+from types import NoneType
+
 from asyncpg import Connection
 
 from core.api.timetable.ttable_parser import raw_values2db_ids_handler
@@ -9,12 +11,20 @@ class TimetableQueries:
     def __init__(self, conn: Connection):
         self.conn = conn
 
-    async def get_ttable(self, building_id: int, group: str, date_start, date_end):
+    async def get_ttable(self, building_id: int, group: str | list[str] | None, date_start, date_end):
         date_filter = 't_v.schedule_date BETWEEN $4 AND $5'
         date_args = (date_start, date_end)
         if not date_end:
             date_filter = 't_v.schedule_date = $4'
             date_args = (date_start,)
+
+        group_filter = 'AND s_d.group_id = (SELECT g.id FROM groups g WHERE g.name = $2)'
+        if not isinstance(group, str):
+            "Если указано несколько групп"
+            group_filter = 'AND s_d.group_id IN (SELECT id FROM groups WHERE name IN ANY($2))'
+            if isinstance(group, NoneType):
+                group_filter = ''
+
         query = f'''
         SELECT l.position, dp.title, t.fio, l.aud FROM lessons l
         JOIN disciplines dp ON dp.id = l.discipline_id
@@ -23,7 +33,7 @@ class TimetableQueries:
             SELECT s_d.id FROM schedule_days s_d
             JOIN ttable_versions t_v ON t_v.id = s_d.sched_ver_id AND t_v.status_id = $3
             WHERE t_v.building_id = $1
-            AND s_d.group_id = (SELECT g.id FROM groups g WHERE g.name = $2)
+            {group_filter}
             AND {date_filter}
         )
         '''

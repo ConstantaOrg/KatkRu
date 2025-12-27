@@ -47,7 +47,7 @@ async def log_in(creds: UserLogInSchema, response: Response, db: PgSqlDep, reque
 
 
 @router.put('/private/users/logout')
-async def log_out(request: Request, response: Response, db: PgSqlDep):
+async def log_out(request: Request, response: Response, db: PgSqlDep, _: JWTCookieDep):
     await db.auth.session_termination(request.state.user_id, request.state.session_id)
     response.delete_cookie('access_token')
     response.delete_cookie('refresh_token')
@@ -56,7 +56,7 @@ async def log_out(request: Request, response: Response, db: PgSqlDep):
 
 
 @router.post('/private/users/seances', summary='Все Устройства аккаунта')
-async def show_seances(request: Request, db: PgSqlDep):
+async def show_seances(request: Request, db: PgSqlDep, _: JWTCookieDep):
     log_event("Запрос всех Устройств с акка | user_id: %s; s_id: %s", request.state.user_id, request.state.session_id, request=request, level='INFO')
     seances = await db.auth.all_seances_user(request.state.user_id, request.state.session_id)
     return {'seances': seances}

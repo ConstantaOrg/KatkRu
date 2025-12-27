@@ -9,7 +9,7 @@ from starlette.middleware.cors import CORSMiddleware
 
 from core.api import main_router
 from core.api.elastic_search import init_elasticsearch_index
-from core.api.middleware import AuthUXMiddleware, LoggingTimeMiddleware, AuthUXASGIMiddleware
+from core.api.middleware import LoggingTimeMiddleware, AuthUXASGIMiddleware
 from core.api.one_time_scripts import unnecessary_router
 from core.config_dir.config import pool_settings, env, es_settings, redis_settings
 
@@ -47,10 +47,8 @@ app.add_middleware(
     allow_methods=['*'],
     allow_headers=['*']
 )
-"ПЕРЕПИСАТЬ НА ASGI-Middleware"
-# app.add_middleware(AuthUXMiddleware)
 app.add_middleware(AuthUXASGIMiddleware)
-app.add_middleware(LoggingTimeMiddleware)
+# app.add_middleware(LoggingTimeMiddleware)
 
 
 if __name__ == '__main__':
