@@ -36,7 +36,7 @@ class N8NIUQueries:
             JOIN ins_hist h ON h.group_id = s_r.group_id
             RETURNING card_hist_id, position, discipline_id
         )
-        SELECT i_d.card_hist_id, g.name, i_d.position, d.title
+        SELECT i_d.card_hist_id, g.id, g.name, i_d.position, d.id, d.title
         FROM ins_details i_d
         JOIN ins_hist i_h ON i_h.id = i_d.card_hist_id
         JOIN groups g ON g.id = i_h.group_id
@@ -47,7 +47,52 @@ class N8NIUQueries:
 
     async def get_ext_card(self, card_hist_id: int):
         query = '''
-        
+        SELECT csd.position, t.fio AS teacher_name, csd.teacher_id, csd.aud FROM cards_states_details csd
+        JOIN teachers t ON t.id = csd.teacher_id
+        WHERE csd.card_hist_id = $1
         '''
-        res = await self.conn.fetch(query, )
+        res = await self.conn.fetch(query, card_hist_id)
         return res
+
+    async def save_card(self, card_hist_id: int, sched_ver_id: int, user_id: int, lessons_json: str):
+        query = '''
+        WITH switch_cur AS (
+            UPDATE cards_states_history SET is_current = false WHERE id = $1
+            RETURNING group_id
+        ),
+        ins_hist AS (
+            INSERT INTO cards_states_history (sched_ver_id, user_id, status_id, group_id, is_current)
+            SELECT $2, $3, $4, sc.group_id, true
+            FROM switch_cur sc
+            RETURNING id AS new_hist_id
+        ),
+        ins_details AS (
+            INSERT INTO cards_states_details (card_hist_id, discipline_id, "position", aud, teacher_id, sched_ver_id)
+            SELECT i_h.new_hist_id, l.discipline_id, l.position, l.aud, l.teacher_id, $2
+            FROM jsonb_to_recordset($5::jsonb) AS l(position int, discipline_id int, teacher_id int, aud text)
+            CROSS JOIN ins_hist i_h
+        )
+        SELECT new_hist_id AS id FROM ins_hist
+        '''
+        return await self.conn.fetchrow(query, card_hist_id, sched_ver_id, user_id, CardsStatesStatuses.edited, lessons_json)
+
+    async def get_cards_history(self, sched_ver_id: int, group_id: int):
+        query = '''
+        SELECT csh.id AS card_hist_id, csh.created_at, csh.user_id, u.name AS user_name, csh.status_id, csh.is_current
+        FROM cards_states_history csh
+        JOIN users u ON u.id = csh.user_id
+        WHERE csh.sched_ver_id = $1 AND csh.group_id = $2
+        ORDER BY csh.is_current DESC, csh.id DESC -- Возможно в фронта кинуть эту задачу
+        LIMIT 50                                  -- Мейби сделать пагинацию для фронта 
+        '''
+        return await self.conn.fetch(query, sched_ver_id, group_id)
+
+    async def get_card_content(self, card_hist_id: int):
+        query = '''
+        SELECT csd.position, csd.aud, csd.discipline_id, d.title AS discipline_title, csd.teacher_id, t.fio AS teacher_name
+        FROM cards_states_details csd
+        JOIN disciplines d ON d.id = csd.discipline_id
+        JOIN teachers t ON t.id = csd.teacher_id
+        WHERE csd.card_hist_id = $1
+        '''
+        return await self.conn.fetch(query, card_hist_id)
