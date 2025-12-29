@@ -13,4 +13,8 @@ class CreateTtableSchema(BaseTtableSchema):
 
 class StdTtableSchema(BaseTtableSchema):
     week_day: int = Field(le=6, gt=0)
+    ttable_id: int
+    user_id: int
 
+class ExtCardStateSchema(BaseModel):
+    card_hist_id: int

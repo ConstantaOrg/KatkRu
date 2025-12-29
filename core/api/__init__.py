@@ -1,4 +1,6 @@
 from fastapi import APIRouter
+
+from .n8n_ui import n8n_ui_router
 from .specialties import router as specialties_router
 from .elastic_search import router as search_router
 from .timetable.timetable_api import router as timetable_router
@@ -11,6 +13,7 @@ main_router.include_router(specialties_router)
 main_router.include_router(search_router)
 main_router.include_router(timetable_router)
 main_router.include_router(users_router)
+main_router.include_router(n8n_ui_router)
 
 @main_router.post('/healthcheck')
 async def healthcheck():

@@ -4,6 +4,33 @@ from typing import Literal
 from docx import Document
 from collections import defaultdict
 
+day_weeks = {
+    "понедельник": 0,
+    "пн": 0,
+    "вторник": 1,
+    "вт": 1,
+    "среда": 2,
+    "ср": 2,
+    "четверг": 3,
+    "чт": 3,
+    "пятница": 4,
+    "пт": 4,
+    "суббота": 5,
+    "суббта": 5,
+    "сб": 5,
+}
+
+
+def normalize_day_name(day: str) -> str:
+    return day.replace('.', '').strip().lower()
+
+
+def day_to_index(day: str) -> int:
+    norm = normalize_day_name(day)
+    if norm not in day_weeks:
+        raise ValueError(f"Unknown day name: {day}")
+    return day_weeks[norm]
+
 
 def extract_teachers(text: str) -> list[str]:
     teach_regexp = re.compile(
@@ -35,7 +62,8 @@ def std_ttable_doc_processer( doc_file, semester: Literal[1, 2]):
             cells = [cell.text.strip() for cell in row.cells]
 
             if cells[0]:
-                current_day = "".join(cells[0].split("\n"))
+                raw_day = "".join(cells[0].split("\n"))
+                current_day = normalize_day_name(raw_day)
 
 
             for group, idx in groups:
@@ -80,7 +108,7 @@ def std_ttable_doc_processer( doc_file, semester: Literal[1, 2]):
     return schedule
 
 
-async def raw_values2db_ids_handler(std_ttable: dict, conn_obj): #conn_obj: TimetableQueries
+async def raw_values2db_ids_handler(std_ttable: dict, sched_ver_id: int, conn_obj): #conn_obj: TimetableQueries
     disciplines = await conn_obj.discipline_ids()
     teachers = await conn_obj.teacher_ids()
     groups = await conn_obj.group_ids()
@@ -110,7 +138,8 @@ async def raw_values2db_ids_handler(std_ttable: dict, conn_obj): #conn_obj: Time
     for group_id_str, days in normalized_ttable.items():
         group_id = int(group_id_str)
 
-        for day_index, (_day_name, pairs) in enumerate(days.items()):
+        for day_name, pairs in days.items():
+            day_index = day_to_index(day_name)
             for position_str, payload in pairs.items():
                 position = int(position_str)
                 discipline_id = payload["discipline"]
@@ -120,7 +149,7 @@ async def raw_values2db_ids_handler(std_ttable: dict, conn_obj): #conn_obj: Time
                 for idx, teacher_id in enumerate(teachers):
                     lessons_to_insert.append(
                         (
-                            2,
+                            sched_ver_id,
                             group_id,
                             discipline_id,
                             position,

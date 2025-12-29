@@ -13,7 +13,7 @@ router = APIRouter()
 @router.post("/std_ttable/get_all", dependencies=[Depends(role_require(Roles.methodist))])
 async def get_std_ttable2cards(body: StdTtableSchema, db: PgSqlDep, request: Request, _: JWTCookieDep):
     std_lessons = await db.n8n_ui.load_std_lessons_as_current(body.building_id, body.week_day, body.ttable_id, body.user_id)
-    log_event(f"Загрузка стандартного расписания | building_id: {body.building_id}; sched_ver_id: \033[36m{body.ttable_id}\033[0m; user_id: \033[33m{body.user_id}\033[0m", request=request)
+    log_event(f"Загрузка стандартного расписания | building_id: {body.building_id}; sched_ver_id: {body.ttable_id}; user_id: {body.user_id}", request=request)
     return {'lessons': std_lessons}
 
 
@@ -21,7 +21,7 @@ async def get_std_ttable2cards(body: StdTtableSchema, db: PgSqlDep, request: Req
 async def create_ttable(body: CreateTtableSchema, db: PgSqlDep, request: Request, _:JWTCookieDep):
     ttable_id = await db.ttable.create(body.building_id, body.date, body.type, TimetableVerStatuses.pending, request.state.user_id)
     log_event(
-        f"Создана версия расписания | sched_ver_id: \033[36m{ttable_id}\033[0m; building_id: %s; type: \033[34m{body.type}\033[0m; назначено на \033[35m{body.date}\033[0m; user_id: \033[33m{body.user_id}\033[0m",
+        f"Создана версия расписания | sched_ver_id: {ttable_id}; building_id: %s; type: {body.type}; назначено на {body.date}; user_id: {body.user_id}",
         request=request
     )
     return {'success': True, "ttable_id": ttable_id}
@@ -30,7 +30,8 @@ async def create_ttable(body: CreateTtableSchema, db: PgSqlDep, request: Request
 @router.post("/cards/get_by_id", dependencies=[Depends(role_require(Roles.methodist))])
 async def create_ttable(body: ExtCardStateSchema, db: PgSqlDep, request: Request, _:JWTCookieDep):
     records = await db.n8n_ui.get_ext_card(body.card_hist_id)
-    log_event(f"Загрузка карточки расписания | card_hist_id: \033[31m{body.card_hist_id}\033[0m; user_id: \033[33m{request.state.user_id}\033[0m", request=request)
+    log_event(f"Загрузка карточки расписания | card_hist_id: {body.card_hist_id}; user_id: {request.state.user_id}", request=request)
     return {'info': records}
+
 
 

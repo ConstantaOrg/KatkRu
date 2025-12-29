@@ -57,13 +57,14 @@ class TimetableQueries:
         """"""
         "Проводим транзакцию"
         await self.conn.execute('BEGIN ISOLATION LEVEL READ COMMITTED')
-        lessons_to_insert = await raw_values2db_ids_handler(std_ttable, self)
+
 
         "Фиксируем импорт расписания"
-        ttable_ver_id = await self.conn.fetchrow(
+        ttable_ver_id = (await self.conn.fetchrow(
             'INSERT INTO ttable_versions (status_id, building_id, user_id, type) VALUES ($1, $2, $3, $4) RETURNING id',
             TimetableVerStatuses.pending, building_id, user_id, TimetableTypes.standard
-        )
+        ))['id']
+        lessons_to_insert = await raw_values2db_ids_handler(std_ttable, ttable_ver_id, self)
         log_event(f"Зафиксировали импорт №{ttable_ver_id}. Вливаем данные")
 
         await self.conn.copy_records_to_table(
@@ -86,4 +87,4 @@ class TimetableQueries:
     async def create(self, building_id: int, date: datetime.date | None, type_: str, status: int, user_id: int):
         query = 'INSERT INTO ttable_versions (building_id, schedule_date, type, status_id, user_id) VALUES ($1, $2, $3, $4, $5) RETURNING id'
         res = await self.conn.fetchrow(query, building_id, date, type_, status, user_id)
-        return res
+        return res['id']

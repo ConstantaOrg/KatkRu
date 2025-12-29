@@ -27,8 +27,14 @@ class TimetableTypes:
 
 @dataclass
 class TimetableVerStatuses:
-    accepted: int = 1
-    pending: int = 2
+    accepted: int = 1   # Утверждено
+    pending: int = 2    # В ожидании
+
+@dataclass
+class CardsStatesStatuses:
+    accepted: int = 1  # Утверждено
+    edited: int = 2    # Редактировано
+    draft: int = 3     # Не трогали
 
 @dataclass
 class Roles:

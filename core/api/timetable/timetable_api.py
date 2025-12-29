@@ -14,7 +14,7 @@ router = APIRouter(prefix="/api/v1", tags=["Timetable📘"])
 @router.post("/private/timetable/standard/import")
 async def upload_ttable_file(
         file_obj: UploadFile,
-        semester: Annotated[Literal[1, 2], Query(alias='smtr')],
+        semester: Annotated[Literal["1", "2"], Query(alias='smtr')],
         building_id: Annotated[int, Query(alias='bid')],
         request: Request,
         db: PgSqlDep,
