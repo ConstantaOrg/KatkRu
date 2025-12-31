@@ -12,7 +12,7 @@ from core.utils.anything import Roles
 from core.utils.lite_dependencies import role_require
 from core.utils.logger import log_event
 
-router = APIRouter(prefix='/api/v1/private/groups', tags=['Groups👥👥👥'])
+router = APIRouter(prefix='/private/groups', tags=['Groups👥👥👥'])
 
 
 @router.get('/get', dependencies=[Depends(role_require(Roles.methodist, Roles.read_all))])

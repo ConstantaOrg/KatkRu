@@ -8,7 +8,7 @@ from core.schemas.cookie_settings_schema import JWTCookieDep
 from core.schemas.ttable_schema import ScheduleFilterSchema
 from core.utils.logger import log_event
 
-router = APIRouter(prefix="/api/v1", tags=["Timetable📘"])
+router = APIRouter(tags=["Timetable📘"])
 
 
 @router.post("/private/timetable/standard/import")

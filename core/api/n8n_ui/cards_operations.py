@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Body
 from starlette.requests import Request
 import json
 
@@ -88,3 +88,8 @@ async def get_card_content(card_hist_id: Annotated[int, Query()], db: PgSqlDep, 
         request=request
     )
     return {'card_content': records}
+
+@router.put('/cards/accept', dependencies=[Depends(role_require(Roles.methodist))])
+async def switch_card_status(card_hist_id: Annotated[int, Body(embed=True)], db: PgSqlDep, _: JWTCookieDep):
+    await db.n8n_ui.accept_card(card_hist_id)
+    return {'success': True, 'message': 'Карточка утверждена!'}

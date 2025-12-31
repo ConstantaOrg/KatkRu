@@ -1,10 +1,11 @@
 import datetime
 from types import NoneType
 
-from asyncpg import Connection
+from asyncpg import Connection, UniqueViolationError
+from fastapi import HTTPException
 
 from core.api.timetable.ttable_parser import raw_values2db_ids_handler
-from core.utils.anything import TimetableTypes, TimetableVerStatuses
+from core.utils.anything import TimetableTypes, TimetableVerStatuses, CardsStatesStatuses
 from core.utils.logger import log_event
 
 
@@ -88,3 +89,70 @@ class TimetableQueries:
         query = 'INSERT INTO ttable_versions (building_id, schedule_date, type, status_id, user_id) VALUES ($1, $2, $3, $4, $5) RETURNING id'
         res = await self.conn.fetchrow(query, building_id, date, type_, status, user_id)
         return res['id']
+
+    async def base_groups(self, building_id: int):
+        query = 'SELECT id FROM groups WHERE is_active = true AND building_id = $1'
+        res = await self.conn.fetch(query, building_id)
+        return res
+
+    async def ttable_ver_groups(self, sched_ver_id: int):
+        query = '''
+        SELECT DISTINCT group_id FROM cards_states_history
+        WHERE sched_ver_id = $1
+          AND status_id IN ($2, $3)
+        '''
+        res = await self.conn.fetch(query, sched_ver_id, CardsStatesStatuses.accepted, CardsStatesStatuses.draft)
+        return res
+
+    async def pre_commit_version(self, cur_ttable_id: int):
+        query = '''
+        WITH old_active_ver AS (
+            SELECT id FROM ttable_versions
+            WHERE status_id = $2
+              AND type = (SELECT type FROM ttable_versions WHERE id = $1) 
+              AND is_commited = true 
+        ),
+        upd_try AS (
+            UPDATE ttable_versions 
+            SET last_modified_at = now(), status_id = $2, is_commited = CASE 
+                WHEN EXISTS (SELECT 1 FROM old_active_ver) THEN false
+                ELSE true
+                END
+            WHERE id = $1
+        )
+        SELECT id FROM old_active_ver
+        '''
+        res = await self.conn.fetchval(query, cur_ttable_id, CardsStatesStatuses.accepted)
+        return res
+
+    async def check_accept_constraints(self, sched_ver_id: int):
+        await self.conn.execute('BEGIN ISOLATION LEVEL REPEATABLE READ')
+        building_id = await self.conn.fetchval('SELECT building_id FROM ttable_versions WHERE id = $1', sched_ver_id)
+
+        base_groups = {rec['id'] for rec in (await self.base_groups(building_id))}
+        ttable_ver_groups = {rec['group_id'] for rec in (await self.ttable_ver_groups(sched_ver_id))}
+
+        'Не все группы в версии расписания "готовы"'
+        if remains_groups:=(base_groups - ttable_ver_groups):
+            await self.conn.execute('ROLLBACK')
+            return 409, {"message": f"Недостаточно групп в Расписании", "needed_groups": list(remains_groups), "ttable_id": sched_ver_id}
+
+        res_switch = await self.pre_commit_version(sched_ver_id)
+        await self.conn.execute('COMMIT')
+
+        "Есть другое расписание"
+        if res_switch:
+            return 202, {'message': "Расписание прошло проверки, но есть другое расписание с тем же предназначением", 'cur_active_ver': res_switch, "pending_ver_id": sched_ver_id}
+
+        "Другого расписания нет, успешный коммит"
+        return None
+
+    async def commit_version(self, pending_ver_id: int, target_ver_id: int):
+        query = '''
+        WITH deactivate_ver AS (
+            UPDATE ttable_versions SET last_modified_at = now(), status_id = $2, is_commited = false
+            WHERE id = $1
+        )
+        UPDATE ttable_versions SET last_modified_at = now(), is_commited = true WHERE id = $2
+        '''
+        res = await self.conn.execute(query, pending_ver_id, target_ver_id)

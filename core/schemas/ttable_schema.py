@@ -23,3 +23,10 @@ class ScheduleFilterSchema(BaseModel):
             raise ValueError('Выберите диапазон дат в пределах 14 дней')
 
         return v
+
+class PreAcceptTimetableSchema(BaseModel):
+    ttable_id: int
+
+class CommitTtableVersionSchema(BaseModel):
+    pending_ver_id: int
+    target_ver_id: int

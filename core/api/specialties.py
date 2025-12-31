@@ -3,7 +3,7 @@ from fastapi import APIRouter
 from core.data.postgre import PgSqlDep
 from core.schemas.specs_schema import SpecsPaginSchema
 
-router = APIRouter(prefix='/api/v1/public/specialties', tags=['Specs📖'])
+router = APIRouter(prefix='/public/specialties', tags=['Specs📖'])
 
 
 @router.post('/all')

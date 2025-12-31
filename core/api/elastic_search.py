@@ -10,7 +10,7 @@ from core.schemas.schemas2depends import PagenDep
 from core.schemas.specs_schema import AutocompleteSearchSchema, DeepSearchSchema
 from core.utils.logger import log_event
 
-router = APIRouter(prefix="/api/v1", tags=["Search🔍"])
+router = APIRouter(tags=["Search🔍"])
 
 
 

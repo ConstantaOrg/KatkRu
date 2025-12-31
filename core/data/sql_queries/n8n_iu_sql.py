@@ -117,3 +117,7 @@ class N8NIUQueries:
         WHERE csd.card_hist_id = $1
         '''
         return await self.conn.fetch(query, card_hist_id)
+
+    async def accept_card(self, card_hist_id: int):
+        query = 'UPDATE cards_states_history SET status_id = $2 WHERE id = $1'
+        await self.conn.execute(query, card_hist_id, CardsStatesStatuses.accepted)
