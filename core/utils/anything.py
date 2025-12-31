@@ -60,6 +60,24 @@ def get_client_ip(request: Request | WebSocket):
     ) else request.client.host
     return ip
 
+def extract_conflict_values(detail_str: str):
+    bracket1, bracket2 = None, None
+    need_vals = []
+    for i, ch in enumerate(detail_str):
+        if ch == '(':
+            bracket1 = i + 1
+            continue
+        elif ch == ')':
+            bracket2 = i
+            continue
+
+        if bracket1 and bracket2:
+            need_vals.append(tuple(detail_str[bracket1:bracket2].split(',')))
+            bracket1, bracket2 = None, None
+    return need_vals
+
+
+
 # def get_client_ip(request: Request | WebSocket):
 #     "При затирании XFF в Nginx"  # proxy_set_header X-Forwarded-For $remote_addr;
 #     xff = request.headers.get('X-Forwarded-For')

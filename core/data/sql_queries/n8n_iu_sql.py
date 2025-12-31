@@ -1,6 +1,7 @@
-from asyncpg import Connection
+from asyncpg import Connection, UniqueViolationError
 
-from core.utils.anything import TimetableVerStatuses, TimetableTypes, CardsStatesStatuses
+from core.utils.anything import TimetableVerStatuses, TimetableTypes, CardsStatesStatuses, extract_conflict_values
+from core.utils.logger import log_event
 
 
 class N8NIUQueries:
@@ -67,14 +68,21 @@ class N8NIUQueries:
             RETURNING id AS new_hist_id
         ),
         ins_details AS (
-            INSERT INTO cards_states_details (card_hist_id, discipline_id, "position", aud, teacher_id, sched_ver_id)
-            SELECT i_h.new_hist_id, l.discipline_id, l.position, l.aud, l.teacher_id, $2
-            FROM jsonb_to_recordset($5::jsonb) AS l(position int, discipline_id int, teacher_id int, aud text)
+            INSERT INTO cards_states_details (card_hist_id, discipline_id, "position", aud, teacher_id, is_force, sched_ver_id)
+            SELECT i_h.new_hist_id, l.discipline_id, l.position, l.aud, l.teacher_id, l.is_force, $2
+            FROM jsonb_to_recordset($5::jsonb) AS l(position int, discipline_id int, teacher_id int, aud text, is_force bool)
             CROSS JOIN ins_hist i_h
         )
         SELECT new_hist_id AS id FROM ins_hist
         '''
-        return await self.conn.fetchrow(query, card_hist_id, sched_ver_id, user_id, CardsStatesStatuses.edited, lessons_json)
+        try:
+            res = (await self.conn.fetchrow(query, card_hist_id, sched_ver_id, user_id, CardsStatesStatuses.edited, lessons_json))['id']
+        except UniqueViolationError as e:
+            exc = e.as_dict()['detail']
+            details = extract_conflict_values(exc)
+            res = {'columns': details[0], 'values': tuple(map(int, details[1]))}
+            log_event(f"Конфликты при сохранении карточки | msg: \033[33m{exc}\033[0m", level='CRITICAL')
+        return res
 
     async def get_cards_history(self, sched_ver_id: int, group_id: int):
         query = '''
