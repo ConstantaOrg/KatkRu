@@ -9,7 +9,7 @@ from starlette.middleware.cors import CORSMiddleware
 
 from core.api import main_router
 from core.api.elastic_search import init_elasticsearch_index
-from core.api.middleware import LoggingTimeMiddleware, AuthUXASGIMiddleware
+from core.api.middleware import AuthUXASGIMiddleware
 from core.api.one_time_scripts import unnecessary_router
 from core.config_dir.config import pool_settings, env, es_settings, redis_settings
 
@@ -37,7 +37,7 @@ async def lifespan(web_app):
 app = FastAPI(docs_url='/api/docs', openapi_url='/api/openapi.json', lifespan=lifespan)
 
 app.include_router(main_router)
-app.include_router(unnecessary_router)
+# app.include_router(unnecessary_router)
 
 "Миддлвари"
 app.add_middleware(
@@ -48,7 +48,6 @@ app.add_middleware(
     allow_headers=['*']
 )
 app.add_middleware(AuthUXASGIMiddleware)
-# app.add_middleware(LoggingTimeMiddleware)
 
 
 if __name__ == '__main__':

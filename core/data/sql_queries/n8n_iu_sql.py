@@ -8,6 +8,19 @@ class N8NIUQueries:
     def __init__(self, conn: Connection):
         self.conn = conn
 
+    async def get_cards(self, sched_ver_id: int):
+        query = '''
+        SELECT csd.card_hist_id, csh.status_id AS status_card, csh.group_id, g.name, csd.position, csd.discipline_id, d.title, csd.is_force
+        FROM cards_states_details csd
+        JOIN cards_states_history csh ON csh.id = csd.card_hist_id
+        JOIN disciplines d ON d.id = csd.discipline_id
+        JOIN groups g ON g.id = csh.group_id
+        WHERE csd.sched_ver_id = $1
+          AND csh.is_current = true
+        '''
+        res = await self.conn.fetch(query, sched_ver_id)
+        return res
+
     async def load_std_lessons_as_current(self, building_id: int, week_day: int, sched_ver_id: int, user_id: int):
         query = '''
         WITH std_recs AS (
@@ -37,7 +50,7 @@ class N8NIUQueries:
             JOIN ins_hist h ON h.group_id = s_r.group_id
             RETURNING card_hist_id, position, discipline_id
         )
-        SELECT i_d.card_hist_id, g.id, g.name, i_d.position, d.id, d.title
+        SELECT i_d.card_hist_id, 3 AS status_card, g.id, g.name, i_d.position, d.id, d.title, false AS is_force
         FROM ins_details i_d
         JOIN ins_hist i_h ON i_h.id = i_d.card_hist_id
         JOIN groups g ON g.id = i_h.group_id

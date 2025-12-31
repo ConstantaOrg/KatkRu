@@ -18,3 +18,7 @@ class StdTtableSchema(BaseTtableSchema):
 
 class ExtCardStateSchema(BaseModel):
     card_hist_id: int
+
+
+class SnapshotTtableSchema(BaseModel):
+    ttable_id: int

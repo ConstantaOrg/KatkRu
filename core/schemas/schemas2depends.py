@@ -9,3 +9,8 @@ class PagenSchema(BaseModel):
     limit: int = Field(default=10, ge=1)
 
 PagenDep = Annotated[PagenSchema, Depends(PagenSchema)]
+
+class GroupPagenSchema(PagenSchema):
+    limit: int = Field(default=30, ge=1)
+
+GroupPagenDep = Annotated[GroupPagenSchema, Depends(GroupPagenSchema)]
