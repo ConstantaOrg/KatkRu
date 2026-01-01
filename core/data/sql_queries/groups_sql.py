@@ -23,9 +23,9 @@ class GroupsQueries:
         active_rows, inactive_rows = [], []
         if ids2active:
             active_rows = await self.conn.fetch(
-                'UPDATE groups SET is_active = false WHERE id = ANY($1) RETURNING id', ids2active)
+                'UPDATE groups SET is_active = true WHERE id = ANY($1) RETURNING id', ids2active)
         if ids2deprecated:
             inactive_rows = await self.conn.fetch(
-                'UPDATE groups SET is_active = true WHERE id = ANY($1) RETURNING id', ids2deprecated)
+                'UPDATE groups SET is_active = false WHERE id = ANY($1) RETURNING id', ids2deprecated)
 
         return len(active_rows), len(inactive_rows)
