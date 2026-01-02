@@ -9,7 +9,7 @@ from core.utils.anything import hide_log_param
 from core.utils.jwt_factory import issue_aT_rT
 from core.utils.logger import log_event
 
-router = APIRouter(prefix='/api/v1', tags=['Users👤'])
+router = APIRouter(tags=['Users👤'])
 
 
 

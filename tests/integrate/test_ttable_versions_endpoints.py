@@ -1,9 +1,10 @@
 import pytest
 
+from core.utils.anything import TimetableVerStatuses, CardsStatesStatuses
+
 
 @pytest.mark.asyncio
 async def test_pre_commit_ok(client, pg_pool):
-    # Build isolated data for building 10
     async with pg_pool.acquire() as conn:
         b_id = await conn.fetchval("INSERT INTO buildings (address) VALUES ('addr10') RETURNING id")
         u_id = await conn.fetchval(
@@ -15,15 +16,17 @@ async def test_pre_commit_ok(client, pg_pool):
         )
         ttv_id = await conn.fetchval(
             "INSERT INTO ttable_versions (schedule_date, status_id, building_id, user_id, type, is_commited) "
-            "VALUES (current_date, 2, $1, $2, 'standard', false) RETURNING id",
+            "VALUES (current_date, $3, $1, $2, 'standard', false) RETURNING id",
             b_id,
             u_id,
+            TimetableVerStatuses.pending,
         )
         await conn.execute(
-            "INSERT INTO cards_states_history (sched_ver_id, user_id, status_id, is_current, group_id) VALUES ($1, $2, 3, true, $3)",
+            "INSERT INTO cards_states_history (sched_ver_id, user_id, status_id, is_current, group_id) VALUES ($1, $2, $4, true, $3)",
             ttv_id,
             u_id,
             g_id,
+            CardsStatesStatuses.draft,
         )
         hist_id = await conn.fetchval("SELECT currval('cards_states_history_id_seq')")
         await conn.execute(
@@ -34,7 +37,7 @@ async def test_pre_commit_ok(client, pg_pool):
         )
 
     resp = await client.put(
-        "/api/v1/ttable/versions/pre-commit",
+        "/api/v1/private/ttable/versions/pre-commit",
         json={"ttable_id": ttv_id},
     )
     assert resp.status_code in (200, 202)
@@ -64,15 +67,17 @@ async def test_pre_commit_missing_groups(client, pg_pool):
         )
         ttv_id = await conn.fetchval(
             "INSERT INTO ttable_versions (schedule_date, status_id, building_id, user_id, type, is_commited) "
-            "VALUES (current_date, 2, $1, $2, 'standard', false) RETURNING id",
+            "VALUES (current_date, $3, $1, $2, 'standard', false) RETURNING id",
             b_id,
             u_id,
+            TimetableVerStatuses.pending,
         )
         await conn.execute(
-            "INSERT INTO cards_states_history (sched_ver_id, user_id, status_id, is_current, group_id) VALUES ($1, $2, 3, true, $3)",
+            "INSERT INTO cards_states_history (sched_ver_id, user_id, status_id, is_current, group_id) VALUES ($1, $2, $4, true, $3)",
             ttv_id,
             u_id,
             g1_id,
+            CardsStatesStatuses.draft,
         )
         hist_id = await conn.fetchval("SELECT currval('cards_states_history_id_seq')")
         await conn.execute(
@@ -83,7 +88,7 @@ async def test_pre_commit_missing_groups(client, pg_pool):
         )
 
     resp = await client.put(
-        "/api/v1/ttable/versions/pre-commit",
+        "/api/v1/private/ttable/versions/pre-commit",
         json={"ttable_id": ttv_id},
     )
     assert resp.status_code == 409
@@ -95,26 +100,28 @@ async def test_pre_commit_missing_groups(client, pg_pool):
 async def test_commit_version(client, pg_pool):
     # Make two versions in distinct building to avoid unique conflicts
     async with pg_pool.acquire() as conn:
-        await conn.execute("TRUNCATE TABLE ttable_versions RESTART IDENTITY CASCADE")
+        await conn.execute("TRUNCATE TABLE ttable_versions CASCADE")
         b_id = await conn.fetchval("INSERT INTO buildings (address) VALUES ('addr12') RETURNING id")
         u_id = await conn.fetchval(
             "INSERT INTO users (name, email, passw, role) VALUES ('U3', 'u3@u', 'p', 'methodist') RETURNING id"
         )
         pending = await conn.fetchval(
             "INSERT INTO ttable_versions (schedule_date, status_id, building_id, user_id, type, is_commited) "
-            "VALUES (current_date, 2, $1, $2, 'standard', false) RETURNING id",
+            "VALUES (current_date, $3, $1, $2, 'standard', false) RETURNING id",
             b_id,
             u_id,
+            TimetableVerStatuses.pending,
         )
         target = await conn.fetchval(
             "INSERT INTO ttable_versions (schedule_date, status_id, building_id, user_id, type, is_commited) "
-            "VALUES (current_date, 1, $1, $2, 'standard', true) RETURNING id",
+            "VALUES (current_date, $3, $1, $2, 'standard', true) RETURNING id",
             b_id,
             u_id,
+            TimetableVerStatuses.accepted,
         )
 
     resp = await client.put(
-        "/api/v1/ttable/versions/commit",
+        "/api/v1/private/ttable/versions/commit",
         json={"pending_ver_id": pending, "target_ver_id": target},
     )
     assert resp.status_code == 200

@@ -1,31 +1,43 @@
-import os
-import importlib
 from datetime import date
+import importlib
+import os
 
 import asyncpg
+from asyncpg import InsufficientPrivilegeError
 import httpx
 import pytest
 from fastapi import FastAPI
 
-os.environ.setdefault("ENV_FILE", ".env.test")
-from core.config_dir import config  # noqa
-
-importlib.reload(config)
-env = config.env
+from core.config_dir import config as cfg
+env = cfg.env
+pool_settings = cfg.pool_settings
 
 from core.api import main_router
-from core.data.postgre import get_custom_pgsql, PgSql
+from core.data.postgre import PgSql, get_custom_pgsql
 from core.schemas.cookie_settings_schema import JWTCookieDep
-from core.utils.anything import Roles
+from core.utils.anything import (
+    Roles,
+    TimetableVerStatuses,
+    TimetableTypes,
+    CardsStatesStatuses,
+)
 from core.utils.logger import log_event
-
-
-TEST_DB_NAME = "test_katk_db"
 
 
 @pytest.fixture(scope="session", autouse=True)
 def ensure_test_database():
+    global env, pool_settings
     dbname = env.pg_db
+    if not dbname.startswith("test_"):
+        # перестраховка: пытаемся подхватить тестовый env, если pytest-dotenv не сработал
+        os.environ["ENV_FILE"] = ".env.test"
+        importlib.reload(cfg)
+        dbname = cfg.env.pg_db
+        log_event(f"ENV_FILE не подхватился, переключаемся на .env.test -> {dbname}", level="WARNING")
+        assert dbname.startswith("test_"), f"Refusing to run tests against non-test database: {dbname}"
+        env = cfg.env
+        pool_settings = cfg.pool_settings
+    log_event(f"Используем БД для тестов: \033[34m{dbname}\033[0m", level="WARNING")
     assert isinstance(dbname, str), "env.pg_db is not set"
     assert dbname.startswith("test_"), f"Refusing to run tests against non-test database: {dbname}"
 
@@ -43,13 +55,13 @@ def log_test_run(request):
     yield
     rep = getattr(request.node, "rep_call", None)
     if rep is None:
-        status = "нет статуса"
+        status = "не выполнен"
     elif rep.failed:
-        status = "провален"
+        status = "упал"
     elif rep.skipped:
         status = "пропущен"
     else:
-        status = "пройден"
+        status = "успешно"
     log_event(f"Завершение теста: {request.node.nodeid} | статус: {status}")
 
 
@@ -57,10 +69,10 @@ async def _truncate_and_seed(conn: asyncpg.Connection):
     tables_to_truncate = [
         "cards_states_details",
         "cards_states_history",
+        "lessons",
+        "schedule_days",
         "std_ttable",
         "ttable_versions",
-        "schedule_days",
-        "lessons",
         "teachers_weekend",
         "teachers_buildings",
         "teachers",
@@ -73,32 +85,61 @@ async def _truncate_and_seed(conn: asyncpg.Connection):
         "ttable_statuses",
         "buildings",
     ]
-    await conn.execute("TRUNCATE TABLE " + ",".join(tables_to_truncate) + " RESTART IDENTITY CASCADE")
+    try:
+        await conn.execute("TRUNCATE TABLE " + ",".join(tables_to_truncate) + " RESTART IDENTITY CASCADE")
+    except InsufficientPrivilegeError:
+        # fallback если у пользователя нет прав на truncate
+        for tbl in tables_to_truncate:
+            await conn.execute(f"DELETE FROM {tbl}")
 
-    cards_statuses = await conn.fetch("INSERT INTO cards_statuses (title) VALUES ('accepted'), ('edited'), ('draft') RETURNING id, title")
-    ttable_statuses = await conn.fetch("INSERT INTO ttable_statuses (title) VALUES ('accepted'), ('pending') RETURNING id, title")
-    building_id = (await conn.fetchrow("INSERT INTO buildings (address) VALUES ('Test address') RETURNING id"))["id"]
-    user_id = (await conn.fetchrow(
-        "INSERT INTO users (name, email, passw, role) VALUES ('Test User', 'test@example.com', 'pass', 'methodist') RETURNING id"
-    ))["id"]
-    group_id = (await conn.fetchrow(
-        "INSERT INTO groups (name, building_id, is_active) VALUES ('GR1', $1, true) RETURNING id",
-        building_id,
-    ))["id"]
-    discipline_id = (await conn.fetchrow(
-        "INSERT INTO disciplines (title) VALUES ('Math') RETURNING id"
-    ))["id"]
-    teacher_id = (await conn.fetchrow(
-        "INSERT INTO teachers (fio) VALUES ('Иванов И.И.') RETURNING id"
-    ))["id"]
-    std_sched_id = (await conn.fetchrow(
-        "INSERT INTO ttable_versions (schedule_date, status_id, building_id, user_id, type, is_commited) "
-        "VALUES ($1, $2, $3, $4, 'standard', true) RETURNING id",
-        date.today(),
-        ttable_statuses[0]["id"],
-        building_id,
-        user_id,
-    ))["id"]
+    cards_status_rows = await conn.fetch(
+        "INSERT INTO cards_statuses (title) VALUES ('accepted'), ('edited'), ('draft') RETURNING id, title"
+    )
+    cards_statuses = {row["title"]: row["id"] for row in cards_status_rows}
+    ttable_status_rows = await conn.fetch(
+        "INSERT INTO ttable_statuses (title) VALUES ('accepted'), ('pending') RETURNING id, title"
+    )
+    ttable_statuses = {row["title"]: row["id"] for row in ttable_status_rows}
+
+    building_id = (
+        await conn.fetchrow(
+            "INSERT INTO buildings (address) VALUES ('Test address') RETURNING id"
+        )
+    )["id"]
+    user_id = (
+        await conn.fetchrow(
+            "INSERT INTO users (name, email, passw, role) "
+            "VALUES ('Test User', 'test@example.com', 'pass', 'methodist') RETURNING id"
+        )
+    )["id"]
+    group_id = (
+        await conn.fetchrow(
+            "INSERT INTO groups (name, building_id, is_active) "
+            "VALUES ('GR1', $1, true) RETURNING id",
+            building_id,
+        )
+    )["id"]
+    discipline_id = (
+        await conn.fetchrow(
+            "INSERT INTO disciplines (title) VALUES ('Math') RETURNING id"
+        )
+    )["id"]
+    teacher_id = (
+        await conn.fetchrow(
+            "INSERT INTO teachers (fio) VALUES ('Иванов И.И.') RETURNING id"
+        )
+    )["id"]
+
+    std_sched_id = (
+        await conn.fetchrow(
+            "INSERT INTO ttable_versions (schedule_date, status_id, building_id, user_id, type, is_commited) "
+            "VALUES ($1, $2, $3, $4, 'standard', true) RETURNING id",
+            date.today(),
+            ttable_statuses["accepted"],
+            building_id,
+            user_id,
+        )
+    )["id"]
 
     await conn.execute(
         "INSERT INTO std_ttable (sched_ver_id, group_id, discipline_id, position, aud, teacher_id, week_day) "
@@ -109,23 +150,27 @@ async def _truncate_and_seed(conn: asyncpg.Connection):
         teacher_id,
     )
 
-    ttable_id = (await conn.fetchrow(
-        "INSERT INTO ttable_versions (schedule_date, status_id, building_id, user_id, type, is_commited) "
-        "VALUES ($1, $2, $3, $4, 'standard', false) RETURNING id",
-        date.today(),
-        ttable_statuses[0]["id"],
-        building_id,
-        user_id,
-    ))["id"]
+    ttable_id = (
+        await conn.fetchrow(
+            "INSERT INTO ttable_versions (schedule_date, status_id, building_id, user_id, type, is_commited) "
+            "VALUES ($1, $2, $3, $4, 'standard', false) RETURNING id",
+            date.today(),
+            ttable_statuses["accepted"],
+            building_id,
+            user_id,
+        )
+    )["id"]
 
-    hist_id = (await conn.fetchrow(
-        "INSERT INTO cards_states_history (sched_ver_id, user_id, status_id, is_current, group_id) "
-        "VALUES ($1, $2, $3, true, $4) RETURNING id",
-        ttable_id,
-        user_id,
-        cards_statuses[1]["id"],  # edited
-        group_id,
-    ))["id"]
+    hist_id = (
+        await conn.fetchrow(
+            "INSERT INTO cards_states_history (sched_ver_id, user_id, status_id, is_current, group_id) "
+            "VALUES ($1, $2, $3, true, $4) RETURNING id",
+            ttable_id,
+            user_id,
+            cards_statuses["edited"],
+            group_id,
+        )
+    )["id"]
 
     await conn.execute(
         "INSERT INTO cards_states_details (card_hist_id, discipline_id, position, aud, teacher_id, sched_ver_id, is_force) "
@@ -144,19 +189,15 @@ async def _truncate_and_seed(conn: asyncpg.Connection):
         "ttable_id": ttable_id,
         "hist_id": hist_id,
         "std_sched_id": std_sched_id,
+        "building_id": building_id,
+        "cards_statuses": cards_statuses,
+        "ttable_statuses": ttable_statuses,
     }
 
 
 @pytest.fixture
 async def db_seed():
-    pool = await asyncpg.create_pool(
-        user="postgres",
-        password="pgdata",
-        database=TEST_DB_NAME,
-        host=env.pg_host,
-        port=env.pg_port,
-        max_size=10,
-    )
+    pool = await asyncpg.create_pool(**pool_settings, max_size=10)
     async with pool.acquire() as conn:
         seed_info = await _truncate_and_seed(conn)
     try:

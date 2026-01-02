@@ -1,7 +1,6 @@
 ﻿import pytest
 from pathlib import Path
 from tempfile import NamedTemporaryFile
-from datetime import date
 from docx import Document
 
 BASE_DIR = Path(__file__).resolve().parents[2]
@@ -43,7 +42,7 @@ async def test_cards_history(client, seed_info):
     history = resp.json()["history"]
     assert len(history) == 1
     row = history[0]
-    assert row["status_id"] == 2
+    assert row["status_id"] == seed_info["cards_statuses"]["edited"]
     assert row["is_current"] is True
     assert row["user_name"] == "Test User"
 
@@ -88,11 +87,11 @@ async def test_cards_accept(client, seed_info, pg_pool):
             "SELECT status_id FROM cards_states_history WHERE id=$1",
             seed_info["hist_id"],
         )
-    assert status_row["status_id"] == 1  # accepted
+    assert status_row["status_id"] == seed_info["cards_statuses"]["accepted"]  # accepted
 
 
 @pytest.mark.asyncio
-async def test_timetable_standard_import(client, pg_pool):
+async def test_timetable_standard_import(client, pg_pool, seed_info):
     with NamedTemporaryFile(suffix=".docx", delete=False) as tmp:
         tmp_path = Path(tmp.name)
     _build_simple_doc(tmp_path, "GR1", "Math", "Иванов И.И.", "201", day_label="пн")
@@ -101,7 +100,7 @@ async def test_timetable_standard_import(client, pg_pool):
         files = {"file_obj": (tmp_path.name, f, "application/vnd.openxmlformats-officedocument.wordprocessingml.document")}
         resp = await client.post(
             "/api/v1/private/timetable/standard/import",
-            params={"smtr": "1", "bid": 1},
+            params={"smtr": "1", "bid": seed_info["building_id"]},
             files=files,
         )
     tmp_path.unlink(missing_ok=True)
@@ -116,8 +115,8 @@ async def test_timetable_standard_import(client, pg_pool):
 
 
 @pytest.mark.asyncio
-async def test_timetable_get(client):
-    body = {"building_id": 1, "group": "GR1"}
+async def test_timetable_get(client, seed_info):
+    body = {"building_id": seed_info["building_id"], "group": "GR1"}
     resp = await client.post("/api/v1/public/timetable/get", json=body)
     assert resp.status_code == 200
     assert "schedule" in resp.json()
