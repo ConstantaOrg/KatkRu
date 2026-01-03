@@ -1,8 +1,7 @@
 import datetime
 from types import NoneType
 
-from asyncpg import Connection, UniqueViolationError
-from fastapi import HTTPException
+from asyncpg import Connection
 
 from core.api.timetable.ttable_parser import raw_values2db_ids_handler
 from core.utils.anything import TimetableTypes, TimetableVerStatuses, CardsStatesStatuses
@@ -122,7 +121,7 @@ class TimetableQueries:
         )
         SELECT id FROM old_active_ver
         '''
-        res = await self.conn.fetchval(query, cur_ttable_id, CardsStatesStatuses.accepted)
+        res = await self.conn.fetchval(query, cur_ttable_id, TimetableVerStatuses.accepted)
         return res
 
     async def check_accept_constraints(self, sched_ver_id: int):
@@ -150,9 +149,9 @@ class TimetableQueries:
     async def commit_version(self, pending_ver_id: int, target_ver_id: int):
         query = '''
         WITH deactivate_ver AS (
-            UPDATE ttable_versions SET last_modified_at = now(), status_id = $2, is_commited = false
+            UPDATE ttable_versions SET last_modified_at = now(), status_id = $3, is_commited = false
             WHERE id = $1
         )
         UPDATE ttable_versions SET last_modified_at = now(), is_commited = true WHERE id = $2
         '''
-        res = await self.conn.execute(query, pending_ver_id, target_ver_id)
+        await self.conn.execute(query, pending_ver_id, target_ver_id, TimetableVerStatuses.pending)

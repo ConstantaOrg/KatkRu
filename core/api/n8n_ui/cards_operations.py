@@ -33,7 +33,10 @@ async def get_std_ttable2cards(body: StdTtableSchema, db: PgSqlDep, request: Req
 @router.post("/current_ttable/get_all", dependencies=[Depends(role_require(Roles.methodist))])
 async def get_std_ttable2cards(body: SnapshotTtableSchema, db: PgSqlDep, request: Request, _: JWTCookieDep):
     lessons_cards = await db.n8n_ui.get_cards(body.ttable_id)
-    log_event(f"Отобразили версию расписания | building_id: {body.building_id}; sched_ver_id: \033[36m{body.ttable_id}\033[0m; user_id: \033[33m{body.user_id}\033[0m", request=request)
+    log_event(
+        f"Отобразили версию расписания | sched_ver_id: \033[36m{body.ttable_id}\033[0m; user_id: \033[33m{request.state.user_id}\033[0m",
+        request=request
+    )
     return {'lessons': lessons_cards}
 
 
