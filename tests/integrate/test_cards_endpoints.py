@@ -115,8 +115,130 @@ async def test_timetable_standard_import(client, pg_pool, seed_info):
 
 
 @pytest.mark.asyncio
-async def test_timetable_get(client, seed_info):
-    body = {"building_id": seed_info["building_id"], "group": "GR1"}
-    resp = await client.post("/api/v1/public/timetable/get", json=body)
+async def test_std_ttable_get_all_creates_snapshot(client, seed_info, pg_pool):
+    async with pg_pool.acquire() as conn:
+        new_sched_id = await conn.fetchval(
+            """
+            INSERT INTO ttable_versions (schedule_date, status_id, building_id, user_id, type, is_commited)
+            VALUES (CURRENT_DATE, $1, $2, $3, 'standard', false)
+            RETURNING id
+            """,
+            seed_info["ttable_statuses"]["accepted"],
+            seed_info["building_id"],
+            seed_info["user_id"],
+        )
+
+    body = {
+        "building_id": seed_info["building_id"],
+        "week_day": 1,
+        "ttable_id": new_sched_id,
+        "user_id": seed_info["user_id"],
+    }
+    resp = await client.post("/api/v1/private/n8n_ui/std_ttable/get_all", json=body)
     assert resp.status_code == 200
-    assert "schedule" in resp.json()
+    lessons = resp.json()["lessons"]
+    assert len(lessons) == 1
+    item = lessons[0]
+    assert item["status_card"] == seed_info["cards_statuses"]["draft"]
+    assert item["position"] == 1
+    assert item["title"] == "Math"
+
+    async with pg_pool.acquire() as conn:
+        current = await conn.fetch("SELECT id, is_current FROM cards_states_history WHERE sched_ver_id=$1", new_sched_id)
+    assert len(current) == 1
+    assert current[0]["is_current"] is True
+
+
+@pytest.mark.asyncio
+async def test_current_ttable_get_all_returns_active_cards(client, seed_info):
+    resp = await client.post(
+        "/api/v1/private/n8n_ui/current_ttable/get_all",
+        json={"ttable_id": seed_info["ttable_id"]},
+    )
+    assert resp.status_code == 200
+    lessons = resp.json()["lessons"]
+    assert len(lessons) == 1
+    row = lessons[0]
+    assert row["card_hist_id"] == seed_info["hist_id"]
+    assert row["status_card"] == seed_info["cards_statuses"]["edited"]
+    assert row["title"] == "Math"
+
+
+@pytest.mark.asyncio
+async def test_cards_save_creates_new_version(client, seed_info, pg_pool):
+    payload = {
+        "card_hist_id": seed_info["hist_id"],
+        "ttable_id": seed_info["ttable_id"],
+        "lessons": [
+            {
+                "position": 2,
+                "discipline_id": seed_info["discipline_id"],
+                "teacher_id": seed_info["teacher_id"],
+                "aud": "202",
+                "is_force": False,
+            }
+        ],
+    }
+    resp = await client.post("/api/v1/private/n8n_ui/cards/save", json=payload)
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["success"] is True
+    new_hist_id = data["new_card_hist_id"]
+    assert isinstance(new_hist_id, int)
+    assert new_hist_id != seed_info["hist_id"]
+
+    async with pg_pool.acquire() as conn:
+        rows = await conn.fetch(
+            "SELECT csd.card_hist_id, csh.is_current, csd.aud "
+            "FROM cards_states_details csd "
+            "JOIN cards_states_history csh ON csh.id = csd.card_hist_id "
+            "WHERE csh.sched_ver_id=$1",
+            seed_info["ttable_id"],
+        )
+    assert any(r["card_hist_id"] == new_hist_id for r in rows)
+    assert any(r["aud"] == "202" and r["is_current"] for r in rows)
+
+
+@pytest.mark.asyncio
+async def test_cards_save_conflict_due_to_unique_index(client, seed_info):
+    payload = {
+        "card_hist_id": seed_info["hist_id"],
+        "ttable_id": seed_info["ttable_id"],
+        "lessons": [
+            {
+                "position": 1,  # конфликтует с существующей записью
+                "discipline_id": seed_info["discipline_id"],
+                "teacher_id": seed_info["teacher_id"],
+                "aud": "303",
+                "is_force": False,
+            }
+        ],
+    }
+    resp = await client.post("/api/v1/private/n8n_ui/cards/save", json=payload)
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["success"] is False
+    assert "conflicts" in data
+
+
+@pytest.mark.asyncio
+async def test_cards_save_conflict_even_with_force(client, seed_info):
+    payload = {
+        "card_hist_id": seed_info["hist_id"],
+        "ttable_id": seed_info["ttable_id"],
+        "lessons": [
+            {
+                "position": 1,  # тот же слот, но is_force=True
+                "discipline_id": seed_info["discipline_id"],
+                "teacher_id": seed_info["teacher_id"],
+                "aud": "304",
+                "is_force": True,
+            }
+        ],
+    }
+    resp = await client.post("/api/v1/private/n8n_ui/cards/save", json=payload)
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["success"] is True
+    assert isinstance(data.get("new_card_hist_id"), int)
+

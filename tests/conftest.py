@@ -15,12 +15,7 @@ pool_settings = cfg.pool_settings
 from core.api import main_router
 from core.data.postgre import PgSql, get_custom_pgsql
 from core.schemas.cookie_settings_schema import JWTCookieDep
-from core.utils.anything import (
-    Roles,
-    TimetableVerStatuses,
-    TimetableTypes,
-    CardsStatesStatuses,
-)
+from core.utils.anything import Roles
 from core.utils.logger import log_event
 
 
