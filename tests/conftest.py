@@ -21,20 +21,9 @@ from core.utils.logger import log_event
 
 @pytest.fixture(scope="session", autouse=True)
 def ensure_test_database():
-    global env, pool_settings
-    dbname = env.pg_db
-    if not dbname.startswith("test_"):
-        # перестраховка: пытаемся подхватить тестовый env, если pytest-dotenv не сработал
-        os.environ["ENV_FILE"] = ".env.test"
-        importlib.reload(cfg)
-        dbname = cfg.env.pg_db
-        log_event(f"ENV_FILE не подхватился, переключаемся на .env.test -> {dbname}", level="WARNING")
-        assert dbname.startswith("test_"), f"Refusing to run tests against non-test database: {dbname}"
-        env = cfg.env
-        pool_settings = cfg.pool_settings
-    log_event(f"Используем БД для тестов: \033[34m{dbname}\033[0m", level="WARNING")
-    assert isinstance(dbname, str), "env.pg_db is not set"
-    assert dbname.startswith("test_"), f"Refusing to run tests against non-test database: {dbname}"
+    assert isinstance(env.pg_db, str), "env.pg_db is not set"
+    assert env.pg_db.startswith("test_"), f"Refusing to run tests against non-test database: {env.pg_db}"
+
 
 
 @pytest.hookimpl(hookwrapper=True)
@@ -80,12 +69,7 @@ async def _truncate_and_seed(conn: asyncpg.Connection):
         "ttable_statuses",
         "buildings",
     ]
-    try:
-        await conn.execute("TRUNCATE TABLE " + ",".join(tables_to_truncate) + " RESTART IDENTITY CASCADE")
-    except InsufficientPrivilegeError:
-        # fallback если у пользователя нет прав на truncate
-        for tbl in tables_to_truncate:
-            await conn.execute(f"DELETE FROM {tbl}")
+    await conn.execute("TRUNCATE TABLE " + ",".join(tables_to_truncate) + " RESTART IDENTITY CASCADE")
 
     cards_status_rows = await conn.fetch(
         "INSERT INTO cards_statuses (title) VALUES ('accepted'), ('edited'), ('draft') RETURNING id, title"
