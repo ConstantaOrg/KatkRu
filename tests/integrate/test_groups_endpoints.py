@@ -14,7 +14,7 @@ async def test_groups_get(client, seed_info):
 
 @pytest.mark.asyncio
 async def test_groups_add(client, pg_pool, seed_info):
-    resp = await client.put(
+    resp = await client.post(
         "/api/v1/private/groups/add",
         json={"group_name": "GR2", "building_id": seed_info["building_id"]},
     )

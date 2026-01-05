@@ -7,7 +7,7 @@ from core.schemas.ttable_schema import CommitTtableVersionSchema, PreAcceptTimet
 from core.utils.anything import Roles
 from core.utils.lite_dependencies import role_require
 
-router = APIRouter(prefix="/private/ttable/versions", tags=["Versions0️⃣1️⃣ !NOT TESTED & NOT CHECKED!"])
+router = APIRouter(prefix="/private/ttable/versions", tags=["Versions0️⃣1️⃣"])
 
 @router.put("/pre-commit", dependencies=[Depends(role_require(Roles.methodist))])
 async def accept_ttable_version(body: PreAcceptTimetableSchema, db: PgSqlDep, _: JWTCookieDep):

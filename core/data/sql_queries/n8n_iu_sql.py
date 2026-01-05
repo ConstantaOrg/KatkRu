@@ -27,8 +27,11 @@ class N8NIUQueries:
             SELECT s_t.group_id, s_t.discipline_id, s_t.position, s_t.aud, s_t.teacher_id
             FROM std_ttable s_t
             JOIN ttable_versions t_v ON t_v.id = s_t.sched_ver_id
-            JOIN groups g ON g.id = s_t.group_id AND g.is_active = true
-            WHERE t_v.status_id = $1          
+            JOIN groups g ON g.id = s_t.group_id AND g.is_active = true             -- Фильтр нужен для выгрузки "Неудалённых" записей
+            JOIN teachers t ON t.id = s_t.teacher_id AND t.is_active = true         -- Фильтр нужен для выгрузки "Неудалённых" записей
+            JOIN disciplines d ON d.id = s_t.discipline_id AND d.is_active = true   -- Фильтр нужен для выгрузки "Неудалённых" записей
+            WHERE t_v.status_id = $1
+              AND t_v.is_commited = true 
               AND t_v.building_id = $2
               AND t_v.type = $3              
               AND s_t.week_day = $4
@@ -50,7 +53,7 @@ class N8NIUQueries:
             JOIN ins_hist h ON h.group_id = s_r.group_id
             RETURNING card_hist_id, position, discipline_id
         )
-        SELECT i_d.card_hist_id, 3 AS status_card, g.id, g.name, i_d.position, d.id, d.title, false AS is_force
+        SELECT i_d.card_hist_id, $7 AS status_card, g.id, g.name, i_d.position, d.id, d.title, false AS is_force
         FROM ins_details i_d
         JOIN ins_hist i_h ON i_h.id = i_d.card_hist_id
         JOIN groups g ON g.id = i_h.group_id
@@ -58,6 +61,49 @@ class N8NIUQueries:
         '''
         res = await self.conn.fetch(query, TimetableVerStatuses.accepted, building_id, TimetableTypes.standard, week_day, sched_ver_id, user_id, CardsStatesStatuses.draft)
         return res
+
+    async def check_loaded_std_pairs(self, building_id: int, week_day: int, sched_ver_id: int):
+        general_filtres = '''
+        AND t_v.status_id = $1
+        AND t_v.is_commited = true 
+        AND t_v.building_id = $2
+        AND t_v.type = $3              
+        AND s_t.week_day = $4
+        '''
+        q_std_groups = f'''
+        SELECT DISTINCT g.name FROM std_ttable s_t
+        JOIN ttable_versions t_v ON t_v.id = s_t.sched_ver_id
+        JOIN groups g ON g.id = s_t.group_id
+        WHERE g.is_active = false 
+        AND t_v.id = $5
+        {general_filtres}
+        '''
+        q_std_disciplines = f'''
+        SELECT DISTINCT d.title FROM std_ttable s_t
+        JOIN ttable_versions t_v ON t_v.id = s_t.sched_ver_id
+        JOIN disciplines d ON d.id = s_t.discipline_id
+        WHERE d.is_active = false
+        AND t_v.id = $5
+        {general_filtres}
+        '''
+        q_std_teachers = f'''
+        SELECT DISTINCT t.fio FROM std_ttable s_t
+        JOIN ttable_versions t_v ON t_v.id = s_t.sched_ver_id
+        JOIN teachers t ON t.id = s_t.teacher_id
+        WHERE t.is_active = false
+        AND t_v.id = $5
+        {general_filtres}
+        '''
+
+        diff_groups = await self.conn.fetch(q_std_groups, TimetableVerStatuses.accepted, building_id, TimetableTypes.standard, week_day, sched_ver_id)
+        diff_disciplines = await self.conn.fetch(q_std_disciplines, TimetableVerStatuses.accepted, building_id, TimetableTypes.standard, week_day, sched_ver_id)
+        diff_teachers = await self.conn.fetch(q_std_teachers, TimetableVerStatuses.accepted, building_id, TimetableTypes.standard, week_day, sched_ver_id)
+        return {
+            'diff_groups': diff_groups,
+            'diff_disciplines': diff_disciplines,
+            'diff_teachers': diff_teachers
+        }
+
 
     async def get_ext_card(self, card_hist_id: int):
         query = '''

@@ -7,8 +7,8 @@ router = APIRouter(prefix='/public/specialties', tags=['Specs📖'])
 
 
 @router.post('/all')
-async def specialties_all(pagin: SpecsPaginSchema, db: PgSqlDep):
-    specs = await db.specialties.get_specialties(pagin.limit, pagin.offset)
+async def specialties_all(pagen: SpecsPaginSchema, db: PgSqlDep):
+    specs = await db.specialties.get_specialties(pagen.limit, pagen.offset)
     return {'specialties': specs}
 
 

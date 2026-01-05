@@ -13,7 +13,10 @@ from core.utils.anything import Roles, TimetableVerStatuses
 from core.utils.lite_dependencies import role_require
 from core.utils.logger import log_event
 
-router = APIRouter()
+router = APIRouter(prefix='/private/n8n_ui', tags=['N8N UI📺'])
+
+
+
 @router.post("/ttable/create", dependencies=[Depends(role_require(Roles.methodist))])
 async def create_ttable(body: CreateTtableSchema, db: PgSqlDep, request: Request, _:JWTCookieDep):
     ttable_id = await db.ttable.create(body.building_id, body.date, body.type, TimetableVerStatuses.pending, request.state.user_id)
@@ -25,12 +28,20 @@ async def create_ttable(body: CreateTtableSchema, db: PgSqlDep, request: Request
 
 @router.post("/std_ttable/get_all", dependencies=[Depends(role_require(Roles.methodist))])
 async def get_std_ttable2cards(body: StdTtableSchema, db: PgSqlDep, request: Request, _: JWTCookieDep):
-    std_lessons = await db.n8n_ui.load_std_lessons_as_current(body.building_id, body.week_day, body.ttable_id, body.user_id)
-    log_event(f"Загрузка стандартного расписания | building_id: {body.building_id}; sched_ver_id: \033[36m{body.ttable_id}\033[0m; user_id: \033[33m{body.user_id}\033[0m", request=request)
+    std_lessons = await db.n8n_ui.load_std_lessons_as_current(body.building_id, body.week_day, body.ttable_id, request.state.user_id)
+    log_event(f"Загрузка стандартного расписания | building_id: {body.building_id}; sched_ver_id: \033[36m{body.ttable_id}\033[0m; user_id: \033[33m{request.state.user_id}\033[0m", request=request)
     return {'lessons': std_lessons}
 
+@router.post("/std_ttable/check_exists", dependencies=[Depends(role_require(Roles.methodist, Roles.read_all))])
+async def check_actuality_of_layout(body: StdTtableSchema, db: PgSqlDep, request: Request, _: JWTCookieDep):
+    resp_body = await db.n8n_ui.check_loaded_std_pairs(body.building_id, body.week_day, body.ttable_id)
+    log_event(
+        f"Проверка актуальности выгрузки данных из \033[35mstd_ttable\033[0m | diff_groups: \033[31m{len(resp_body['diff_groups'])}\033[0m; diff_teachers: \033[34m{len(resp_body['diff_teachers'])}\033[0m; diff_disciplines: \033[35m{len(resp_body['diff_disciplines'])}\033[0m",
+        request=request, level='WARNING'
+    )
+    return resp_body
 
-@router.post("/current_ttable/get_all", dependencies=[Depends(role_require(Roles.methodist))])
+@router.post("/current_ttable/get_all", dependencies=[Depends(role_require(Roles.methodist, Roles.read_all))])
 async def get_std_ttable2cards(body: SnapshotTtableSchema, db: PgSqlDep, request: Request, _: JWTCookieDep):
     lessons_cards = await db.n8n_ui.get_cards(body.ttable_id)
     log_event(

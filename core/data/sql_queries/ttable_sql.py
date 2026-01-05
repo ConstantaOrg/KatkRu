@@ -19,21 +19,22 @@ class TimetableQueries:
             date_filter = 't_v.schedule_date = $4'
             date_args = (date_start,)
 
-        group_filter = 'AND s_d.group_id = (SELECT g.id FROM groups g WHERE g.is_active = true AND g.name = $2)'
+        group_filter = 'AND csh.group_id = (SELECT g.id FROM groups g WHERE g.is_active = true AND g.name = $2)'
         if not isinstance(group, str):
             "Если указано несколько групп"
-            group_filter = 'AND s_d.group_id IN (SELECT id FROM groups WHERE is_active = true AND name IN ANY($2))'
+            group_filter = 'AND csh.group_id IN (SELECT g.id FROM groups g WHERE g.is_active = true AND g.name = ANY($2))'
             if isinstance(group, NoneType):
                 group_filter = ''
 
         query = f'''
-        SELECT l.position, dp.title, t.fio, l.aud FROM lessons l
-        JOIN disciplines dp ON dp.id = l.discipline_id
-        JOIN teachers t ON t.id = l.teacher_id
-        WHERE l.sched_id IN (
-            SELECT s_d.id FROM schedule_days s_d
-            JOIN ttable_versions t_v ON t_v.id = s_d.sched_ver_id AND t_v.status_id = $3
+        SELECT csd.position, dp.title, t.fio, csd.aud FROM cards_states_details csd 
+        JOIN disciplines dp ON dp.id = csd.discipline_id
+        JOIN teachers t ON t.id = csd.teacher_id
+        WHERE csd.card_hist_id IN (
+            SELECT csd.id FROM cards_states_history csh
+            JOIN ttable_versions t_v ON t_v.id = csh.sched_ver_id AND t_v.status_id = $3
             WHERE t_v.building_id = $1
+               AND csh.is_current = true
             {group_filter}
             AND {date_filter}
         )
@@ -57,7 +58,6 @@ class TimetableQueries:
         """"""
         "Проводим транзакцию"
         await self.conn.execute('BEGIN ISOLATION LEVEL READ COMMITTED')
-
 
         "Фиксируем импорт расписания"
         ttable_ver_id = (await self.conn.fetchrow(

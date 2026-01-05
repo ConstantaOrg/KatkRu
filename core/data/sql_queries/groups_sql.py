@@ -16,7 +16,7 @@ class GroupsQueries:
         ON CONFLICT (name) DO NOTHING
         RETURNING id
         '''
-        res = await self.conn.fetchrow(query, group_name, building_id)
+        res = await self.conn.fetchval(query, group_name, building_id)
         return res
 
     async def switch_status(self, ids2active, ids2deprecated):

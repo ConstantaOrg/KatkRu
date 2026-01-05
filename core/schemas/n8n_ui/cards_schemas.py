@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List
 
 "Наполнение карточки"
 class CardLessonPayload(BaseModel):
@@ -14,13 +14,3 @@ class SaveCardSchema(BaseModel):
     card_hist_id: int
     ttable_id: int
     lessons: List[CardLessonPayload]
-
-
-"Схема для смены статусов групп"
-class GroupUpdateSchema(BaseModel):
-    set_as_active: list[int] | None = None
-    set_as_deprecated: list[int] | None = None
-
-class GroupAddSchema(BaseModel):
-    group_name: str
-    building_id: int
