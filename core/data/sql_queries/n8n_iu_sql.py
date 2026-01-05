@@ -62,42 +62,38 @@ class N8NIUQueries:
         res = await self.conn.fetch(query, TimetableVerStatuses.accepted, building_id, TimetableTypes.standard, week_day, sched_ver_id, user_id, CardsStatesStatuses.draft)
         return res
 
-    async def check_loaded_std_pairs(self, building_id: int, week_day: int, sched_ver_id: int):
-        general_filtres = '''
-        AND t_v.status_id = $1
-        AND t_v.is_commited = true 
-        AND t_v.building_id = $2
-        AND t_v.type = $3              
-        AND s_t.week_day = $4
-        '''
+    async def check_loaded_std_pairs(self, building_id: int, sched_ver_id: int):
         q_std_groups = f'''
-        SELECT DISTINCT g.name FROM std_ttable s_t
-        JOIN ttable_versions t_v ON t_v.id = s_t.sched_ver_id
-        JOIN groups g ON g.id = s_t.group_id
+        SELECT DISTINCT g.name FROM cards_states_details csd
+        JOIN ttable_versions t_v ON t_v.id = csd.sched_ver_id
+        JOIN cards_states_history csh ON csh.id = csd.card_hist_id AND csh.is_current = true
+        JOIN groups g ON g.id = csh.group_id AND g.building_id = $1
         WHERE g.is_active = false 
-        AND t_v.id = $5
-        {general_filtres}
+        AND csd.sched_ver_id = $2
+        AND t_v.is_commited = true 
         '''
         q_std_disciplines = f'''
-        SELECT DISTINCT d.title FROM std_ttable s_t
-        JOIN ttable_versions t_v ON t_v.id = s_t.sched_ver_id
-        JOIN disciplines d ON d.id = s_t.discipline_id
+        SELECT DISTINCT d.title FROM cards_states_details csd
+        JOIN ttable_versions t_v ON t_v.id = csd.sched_ver_id
+        JOIN cards_states_history csh ON csh.id = csd.card_hist_id AND csh.is_current = true
+        JOIN disciplines d ON d.id = csd.discipline_id
         WHERE d.is_active = false
-        AND t_v.id = $5
-        {general_filtres}
+        AND csd.sched_ver_id = $1
+        AND t_v.is_commited = true 
         '''
         q_std_teachers = f'''
-        SELECT DISTINCT t.fio FROM std_ttable s_t
-        JOIN ttable_versions t_v ON t_v.id = s_t.sched_ver_id
-        JOIN teachers t ON t.id = s_t.teacher_id
+        SELECT DISTINCT t.fio FROM cards_states_details csd
+        JOIN ttable_versions t_v ON t_v.id = csd.sched_ver_id
+        JOIN cards_states_history csh ON csh.id = csd.card_hist_id AND csh.is_current = true
+        JOIN teachers t ON t.id = csd.teacher_id
         WHERE t.is_active = false
-        AND t_v.id = $5
-        {general_filtres}
+        AND csd.sched_ver_id = $1
+        AND t_v.is_commited = true 
         '''
 
-        diff_groups = await self.conn.fetch(q_std_groups, TimetableVerStatuses.accepted, building_id, TimetableTypes.standard, week_day, sched_ver_id)
-        diff_disciplines = await self.conn.fetch(q_std_disciplines, TimetableVerStatuses.accepted, building_id, TimetableTypes.standard, week_day, sched_ver_id)
-        diff_teachers = await self.conn.fetch(q_std_teachers, TimetableVerStatuses.accepted, building_id, TimetableTypes.standard, week_day, sched_ver_id)
+        diff_groups = await self.conn.fetch(q_std_groups, building_id, sched_ver_id)
+        diff_disciplines = await self.conn.fetch(q_std_disciplines, sched_ver_id)
+        diff_teachers = await self.conn.fetch(q_std_teachers, sched_ver_id)
         return {
             'diff_groups': diff_groups,
             'diff_disciplines': diff_disciplines,
