@@ -14,7 +14,6 @@ from pydantic import BaseModel
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from starlette.requests import Request
-from starlette.responses import Response
 
 from core.config_dir.env_modes import AppMode, APP_MODE_CONFIG
 
@@ -22,7 +21,7 @@ from core.config_dir.env_modes import AppMode, APP_MODE_CONFIG
 environment_files = (
     os.getenv('ENV_FILE') or
     os.getenv('ENV_LOCAL_TEST_FILE') or
-    '.env'
+    '.env.prod'
 )
 load_dotenv(environment_files, override=True)
 logging.critical(f'\033[35m{environment_files}\033[0m | \033[33m{os.getenv("APP_MODE")}\033[0m')

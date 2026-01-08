@@ -53,8 +53,6 @@ async def _truncate_and_seed(conn: asyncpg.Connection):
     tables_to_truncate = [
         "cards_states_details",
         "cards_states_history",
-        "lessons",
-        "schedule_days",
         "std_ttable",
         "ttable_versions",
         "teachers_weekend",

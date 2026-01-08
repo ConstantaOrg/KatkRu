@@ -171,3 +171,4 @@ secrets/
 *.docx
 *.json
 *.rdb
+docker-compose.dev.yml

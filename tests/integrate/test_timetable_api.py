@@ -6,19 +6,13 @@ from core.utils.anything import TimetableVerStatuses
 @pytest.mark.asyncio
 async def test_public_timetable_get(client, pg_pool, seed_info):
     async with pg_pool.acquire() as conn:
-        sched_day_id = await conn.fetchval(
-            "INSERT INTO schedule_days (group_id, sched_ver_id) VALUES ($1, $2) RETURNING id",
-            seed_info["group_id"],
-            seed_info["ttable_id"],
-        )
         await conn.execute(
             """
-            INSERT INTO lessons (sched_id, discipline_id, position, aud, teacher_id)
-            VALUES ($1, $2, 1, '201', $3)
+            UPDATE cards_states_details
+            SET aud = '201'
+            WHERE card_hist_id = $1
             """,
-            sched_day_id,
-            seed_info["discipline_id"],
-            seed_info["teacher_id"],
+            seed_info["hist_id"],
         )
 
     body = {"building_id": seed_info["building_id"], "group": "GR1"}
