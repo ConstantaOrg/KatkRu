@@ -1,0 +1,11 @@
+[run]
+source = core
+omit =
+    core/api/one_time_scripts/*
+    core/utils/logger.py
+
+
+[report]
+exclude_lines =
+    pragma: no cover
+    if __name__ == "__main__":

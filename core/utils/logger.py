@@ -10,7 +10,7 @@ from typing import Literal
 from starlette.requests import Request
 from starlette.websockets import WebSocket
 
-from core.config import WORKDIR
+from core.config_dir.config import WORKDIR
 from core.utils.anything import create_log_dirs, get_client_ip
 
 
