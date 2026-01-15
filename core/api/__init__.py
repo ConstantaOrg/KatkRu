@@ -25,4 +25,4 @@ main_router.include_router(ttable_versions_router)
 
 @main_router.post('/healthcheck')
 async def healthcheck():
-    return {'status': 'ok', 'version': '0.1'}
+    return {'status': True, 'version': '0.1.5'}

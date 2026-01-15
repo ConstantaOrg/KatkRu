@@ -172,3 +172,4 @@ secrets/
 *.json
 *.rdb
 docker-compose.dev.yml
+makets/
