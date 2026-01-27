@@ -34,7 +34,13 @@ async def lifespan(web_app):
         await web_app.state.es_client.close()
         await web_app.state.redis.close()
 
-app = FastAPI(docs_url='/api/docs', openapi_url='/api/openapi.json', lifespan=lifespan)
+app = FastAPI(
+    docs_url='/api/docs',
+    openapi_url='/api/openapi.json',
+    lifespan=lifespan,
+    response_model=env.post_processing_responses,
+    response_model_exclude_unset=env.post_processing_responses
+)
 
 app.include_router(main_router)
 # app.include_router(unnecessary_router)

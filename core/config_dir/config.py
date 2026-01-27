@@ -76,6 +76,7 @@ class Settings(BaseSettings):
     search_index: str
 
     app_mode: AppMode
+    post_processing_responses: bool # Использовать респонс модели или нет. Влияет на производительность ценой читаемости
     es_init: bool
     allowed_ips: set[str] = {"172.25.0.1", "127.0.0.1"}
     trusted_proxies: set[str] =  {'127.0.0.1', '172.25.0.1'}

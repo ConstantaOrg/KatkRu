@@ -6,6 +6,9 @@ from starlette.requests import Request
 from core.config_dir.config import ElasticDep, env
 from core.config_dir.index_settings import search_ptn, settings, mappings, aliases
 from core.data.postgre import PgSql
+from core.response_schemas.elastic_search import (
+    AutocompleteSearchResponse, DeepSearchResponse, ElasticInitResponse
+)
 from core.schemas.schemas2depends import PagenDep
 from core.schemas.specs_schema import AutocompleteSearchSchema, DeepSearchSchema
 from core.utils.logger import log_event
@@ -65,7 +68,7 @@ async def init_elasticsearch_index(index_name: str, db: Pool, aioes: AsyncElasti
 
 
 
-@router.post("/public/elastic/autocomplete_spec")
+@router.post("/public/elastic/autocomplete_spec", response_model=AutocompleteSearchResponse)
 async def fast_search(body: AutocompleteSearchSchema, request: Request, aioes: ElasticDep):
     """
     код специальности и название склеить на фронте(возможно)
@@ -81,7 +84,7 @@ async def fast_search(body: AutocompleteSearchSchema, request: Request, aioes: E
     )}
 
 
-@router.post("/public/elastic/ext_spec")
+@router.post("/public/elastic/ext_spec", response_model=DeepSearchResponse)
 async def deep_search(body: DeepSearchSchema, pagen: PagenDep, aioes: ElasticDep):
     """
     код специальности и название склеить на фронте(возможно)

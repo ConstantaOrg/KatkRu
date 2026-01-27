@@ -2,6 +2,9 @@ from fastapi import APIRouter, Depends
 from starlette.responses import JSONResponse
 
 from core.data.postgre import PgSqlDep
+from core.response_schemas.ttable_versions_tab import (
+    TtableVersionsPreCommitResponse, TtableVersionsCommitResponse
+)
 from core.schemas.cookie_settings_schema import JWTCookieDep
 from core.schemas.ttable_schema import CommitTtableVersionSchema, PreAcceptTimetableSchema
 from core.utils.anything import Roles
@@ -9,7 +12,7 @@ from core.utils.lite_dependencies import role_require
 
 router = APIRouter(prefix="/private/ttable/versions", tags=["Versions0️⃣1️⃣"])
 
-@router.put("/pre-commit", dependencies=[Depends(role_require(Roles.methodist))])
+@router.put("/pre-commit", dependencies=[Depends(role_require(Roles.methodist))], response_model=TtableVersionsPreCommitResponse)
 async def accept_ttable_version(body: PreAcceptTimetableSchema, db: PgSqlDep, _: JWTCookieDep):
     updating = await db.ttable.check_accept_constraints(body.ttable_id)
     if not updating:
@@ -17,7 +20,7 @@ async def accept_ttable_version(body: PreAcceptTimetableSchema, db: PgSqlDep, _:
     return JSONResponse(status_code=updating[0], content=updating[1])
 
 
-@router.put("/commit", dependencies=[Depends(role_require(Roles.methodist))])
+@router.put("/commit", dependencies=[Depends(role_require(Roles.methodist))], response_model=TtableVersionsCommitResponse)
 async def accept_ttable_version(body: CommitTtableVersionSchema, db: PgSqlDep, _: JWTCookieDep):
     await db.ttable.commit_version(body.pending_ver_id, body.target_ver_id)
     return {'success': True, 'message': 'Версии переключены!'}

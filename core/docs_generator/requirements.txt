@@ -1,0 +1,12 @@
+# Dependencies for the documentation generator
+# These are already included in the main project requirements.txt
+# but listed here for reference
+
+# Core Python modules (built-in)
+# - inspect
+# - ast  
+# - typing
+
+# External dependencies (should already be available)
+# - fastapi
+# - pydantic
