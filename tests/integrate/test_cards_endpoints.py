@@ -132,7 +132,6 @@ async def test_std_ttable_get_all_creates_snapshot(client, seed_info, pg_pool):
         "building_id": seed_info["building_id"],
         "week_day": 1,
         "ttable_id": new_sched_id,
-        "user_id": seed_info["user_id"],
     }
     resp = await client.post("/api/v1/private/n8n_ui/std_ttable/get_all", json=body)
     assert resp.status_code == 200

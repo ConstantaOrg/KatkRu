@@ -7,6 +7,7 @@ from hypothesis import given, strategies as st, settings
 from typing import List
 
 from core.docs_generator.sql_analyzer import SQLAnalyzer, SQLQueryInfo
+from core.docs_generator.sql_analyzer.handlers import extract_tables_from_query, get_operation_type
 
 
 class TestSQLAnalyzer:
@@ -94,7 +95,7 @@ class TestSQLAnalyzer:
         ]
         
         for query, expected_tables in test_cases:
-            extracted_tables = self.analyzer._extract_tables_from_query(query)
+            extracted_tables = extract_tables_from_query(query)
             
             # Check that all expected tables are found
             for expected_table in expected_tables:
@@ -115,7 +116,7 @@ class TestSQLAnalyzer:
         ]
         
         for query, expected_type in test_cases:
-            operation_type = self.analyzer._get_operation_type(query)
+            operation_type = get_operation_type(query)
             assert operation_type == expected_type, \
                 f"Query '{query}' should be type '{expected_type}', got '{operation_type}'"
     

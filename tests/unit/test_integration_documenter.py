@@ -25,8 +25,8 @@ class TestIntegrationDocumenter:
         """Test initialization with default project root."""
         documenter = IntegrationDocumenter()
         assert documenter.project_root == Path.cwd()
-        assert len(documenter.config_files) == 5
-        assert 'core/config.py' in documenter.config_files
+        assert len(documenter.config_files) == 4
+        assert 'core/config_dir/config.py' in documenter.config_files
     
     def test_init_with_custom_project_root(self):
         """Test initialization with custom project root."""

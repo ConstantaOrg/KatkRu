@@ -47,7 +47,6 @@ class IntegrationDocumenter:
     def __init__(self, project_root: Optional[str] = None):
         self.project_root = Path(project_root) if project_root else Path.cwd()
         self.config_files = [
-            'core/config.py',
             'core/config_dir/config.py',
             'core/data/postgre.py',
             'core/data/redis_storage.py',

@@ -12,8 +12,10 @@ class CreateTtableSchema(BaseTtableSchema):
     type: Literal['standard', 'replacements']
 
 class StdTtableSchema(BaseTtableSchema):
-    week_day: int = Field(le=6, gt=0)
     ttable_id: int
+
+class StdTtableLoadSchema(StdTtableSchema):
+    week_day: int = Field(le=6, gt=0)
 
 class ExtCardStateSchema(BaseModel):
     card_hist_id: int

@@ -256,17 +256,23 @@ class DependencyAnalyzer:
         # Try to find the function by name in the module
         try:
             if endpoint_info.module and endpoint_info.function_name:
-                module_path = f"core.api.{endpoint_info.module}"
-                if endpoint_info.module == 'elastic_search':
-                    module_path = "core.api.elastic_search"
-                elif endpoint_info.module == 'n8n_ui':
-                    module_path = "core.api.n8n_ui"
-                elif endpoint_info.module == 'ttable_versions':
-                    module_path = "core.api.ttable_versions_tab"
-                elif endpoint_info.module == 'timetable':
-                    module_path = "core.api.timetable.timetable_api"
-                elif endpoint_info.module == 'users':
-                    module_path = "core.api.users.users_api"
+                # Import constants
+                from core.utils.anything import ModulePaths
+                
+                # Module path mapping
+                module_paths = {
+                    'elastic_search': ModulePaths.elastic_search,
+                    'n8n_ui': ModulePaths.n8n_ui,
+                    'ttable_versions': ModulePaths.ttable_versions,
+                    'timetable': ModulePaths.timetable,
+                    'users': ModulePaths.users,
+                }
+                
+                # Get module path or use default pattern
+                module_path = module_paths.get(
+                    endpoint_info.module, 
+                    f"core.api.{endpoint_info.module}"
+                )
                 
                 try:
                     module = importlib.import_module(module_path)

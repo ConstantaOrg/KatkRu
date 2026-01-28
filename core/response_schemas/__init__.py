@@ -54,7 +54,6 @@ class ValidationErrorResponse(ErrorResponse):
     details: List[dict] = Field(..., description="Список ошибок валидации")
 
 
-# Экспортируем основные классы
 __all__ = [
     "BaseResponse",
     "SuccessResponse", 

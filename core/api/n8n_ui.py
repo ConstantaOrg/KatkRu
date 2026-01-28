@@ -13,7 +13,7 @@ from core.response_schemas.n8n_ui import (
 from core.schemas.cookie_settings_schema import JWTCookieDep
 from core.schemas.n8n_ui.cards_schemas import SaveCardSchema
 from core.schemas.n8n_ui.ttable_needs_schema import CreateTtableSchema, StdTtableSchema, ExtCardStateSchema, \
-    SnapshotTtableSchema
+    SnapshotTtableSchema, StdTtableLoadSchema
 from core.utils.anything import Roles, TimetableVerStatuses
 from core.utils.lite_dependencies import role_require
 from core.utils.logger import log_event
@@ -32,14 +32,14 @@ async def create_ttable(body: CreateTtableSchema, db: PgSqlDep, request: Request
     return {'success': True, "ttable_id": ttable_id}
 
 @router.post("/std_ttable/get_all", dependencies=[Depends(role_require(Roles.methodist))], response_model=StdTtableGetAllResponse)
-async def get_std_ttable2cards(body: StdTtableSchema, db: PgSqlDep, request: Request, _: JWTCookieDep):
+async def get_std_ttable2cards(body: StdTtableLoadSchema, db: PgSqlDep, request: Request, _: JWTCookieDep):
     std_lessons = await db.n8n_ui.load_std_lessons_as_current(body.building_id, body.week_day, body.ttable_id, request.state.user_id)
     log_event(f"Загрузка стандартного расписания | building_id: {body.building_id}; sched_ver_id: \033[36m{body.ttable_id}\033[0m; user_id: \033[33m{request.state.user_id}\033[0m", request=request)
     return {'lessons': [dict(lesson) for lesson in std_lessons]}
 
 @router.post("/std_ttable/check_exists", dependencies=[Depends(role_require(Roles.methodist, Roles.read_all))], response_model=StdTtableCheckExistsResponse)
 async def check_actuality_of_layout(body: StdTtableSchema, db: PgSqlDep, request: Request, _: JWTCookieDep):
-    resp_body = await db.n8n_ui.check_loaded_std_pairs(body.building_id, body.week_day, body.ttable_id)
+    resp_body = await db.n8n_ui.check_loaded_std_pairs(body.building_id, body.ttable_id)
     log_event(
         f"Проверка актуальности выгрузки данных из \033[35mstd_ttable\033[0m | diff_groups: \033[31m{len(resp_body['diff_groups'])}\033[0m; diff_teachers: \033[34m{len(resp_body['diff_teachers'])}\033[0m; diff_disciplines: \033[35m{len(resp_body['diff_disciplines'])}\033[0m",
         request=request, level='WARNING'

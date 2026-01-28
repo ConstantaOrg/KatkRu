@@ -19,7 +19,7 @@ router = APIRouter(prefix='/private/teachers', tags=['Teachers👨‍🏫'])
 async def get_teachers(pagen: TeachersPagenSchema, db: PgSqlDep, request: Request, _: JWTCookieDep):
     teachers = await db.teachers.get_all(pagen.limit, pagen.offset)
     log_event(f"Отобразили Учителей | user_id: \033[31m{request.state.user_id}\033[0m", request=request)
-    return {'teachers': teachers}
+    return {'teachers': [dict(teacher) for teacher in teachers]}
 
 @router.put('/update', dependencies=[Depends(role_require(Roles.methodist))], response_model=TeachersUpdateResponse)
 async def update_teachers(body: TeachersUpdateSchema, db: PgSqlDep, request: Request, _: JWTCookieDep):

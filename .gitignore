@@ -170,7 +170,7 @@ logs/
 secrets/
 .vscode/
 *.docx
-*.json
+ttable_*.json
 *.rdb
 docker-compose.dev.yml
 makets/

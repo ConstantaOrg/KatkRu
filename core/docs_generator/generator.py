@@ -80,25 +80,26 @@ class DocumentationGenerator:
             # Filter endpoints for this module
             module_endpoints = [ep for ep in self.endpoints if self.documenter.categorize_endpoint(ep) == module]
             
-            # Use the appropriate documenter method based on module
-            if module == 'specialties':
-                return self.documenter.document_specialties_module(self.endpoints)
-            elif module == 'groups':
-                return self.documenter.document_groups_module(self.endpoints)
-            elif module == 'teachers':
-                return self.documenter.document_teachers_module(self.endpoints)
-            elif module == 'disciplines':
-                return self.documenter.document_disciplines_module(self.endpoints)
-            elif module == 'timetable':
-                return self.documenter.document_timetable_module(self.endpoints)
-            elif module == 'users':
-                return self.documenter.document_users_module(self.endpoints)
-            elif module == 'n8n_ui':
-                return self.documenter.document_n8n_ui_module(self.endpoints)
-            elif module == 'elastic_search':
-                return self.documenter.document_search_module(self.endpoints)
-            elif module == 'ttable_versions':
-                return self.documenter.document_ttable_versions_module(self.endpoints)
+            # Import constants
+            from core.utils.anything import ModuleNames
+            
+            # Module documentation methods mapping
+            module_methods = {
+                ModuleNames.specialties: self.documenter.document_specialties_module,
+                ModuleNames.groups: self.documenter.document_groups_module,
+                ModuleNames.teachers: self.documenter.document_teachers_module,
+                ModuleNames.disciplines: self.documenter.document_disciplines_module,
+                ModuleNames.timetable: self.documenter.document_timetable_module,
+                ModuleNames.users: self.documenter.document_users_module,
+                ModuleNames.n8n_ui: self.documenter.document_n8n_ui_module,
+                ModuleNames.elastic_search: self.documenter.document_search_module,
+                ModuleNames.ttable_versions: self.documenter.document_ttable_versions_module,
+            }
+            
+            # Get the appropriate documenter method
+            documenter_method = module_methods.get(module)
+            if documenter_method:
+                return documenter_method(self.endpoints)
             else:
                 # Generic module documentation
                 return self.documenter.create_module_documentation(module, self.endpoints, self.endpoints)
@@ -567,7 +568,7 @@ class DocumentationGenerator:
                 f.write("\n".join(overview_content))
             generated_files.append(overview_file)
             
-            # Generate individual module files
+            # Generate individual module files in docs directory
             for module_name, module_doc in modules.items():
                 module_content = self._format_module_markdown(module_name, module_doc)
                 
@@ -576,7 +577,7 @@ class DocumentationGenerator:
                     f.write("\n".join(module_content))
                 generated_files.append(module_file)
             
-            self.logger.info(f"Generated {len(generated_files)} Markdown files in {output_dir}")
+            self.logger.info(f"Generated {len(generated_files)} Markdown files - README.md in project root, modules in {output_dir}")
             return generated_files
             
         except Exception as e:

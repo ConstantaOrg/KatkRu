@@ -256,16 +256,23 @@ class TestDocumentationCLIIntegration:
             # Verify successful execution
             assert exit_code == 0, "CLI should exit successfully"
             
-            # Verify output files were created
+            # Verify output files were created in docs directory
             output_path = Path(temp_output_dir)
             generated_files = list(output_path.glob('*.md'))
             
-            assert len(generated_files) > 0, "Should generate markdown files"
+            assert len(generated_files) > 0, "Should generate markdown files in docs directory"
             
-            # Verify README.md exists (overview file)
-            readme_file = output_path / "README.md"
-            assert readme_file.exists(), "Should generate README.md overview file"
+            # Verify README.md exists in project root (not in output directory)
+            readme_file = Path("README.md")
+            assert readme_file.exists(), "Should generate README.md in project root"
             assert readme_file.stat().st_size > 0, "README.md should not be empty"
+            
+            # Verify README.md contains links to docs/module_name.md
+            with open(readme_file, 'r', encoding='utf-8') as f:
+                readme_content = f.read()
+            
+            # Should contain links pointing to docs/ directory
+            assert 'docs/' in readme_content, "README.md should contain links to docs/ directory"
     
     def test_cli_json_output_format(self, cli, temp_output_dir):
         """

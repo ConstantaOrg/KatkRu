@@ -1,22 +1,15 @@
-# API Documentation - Система управления расписанием
+# Multi-Module API
 
-Техническая документация для API системы управления расписанием учебного заведения
+Testing multi-file generation
 
 ## Statistics
 
-- Total Endpoints: 33
-- Modules: 9
-- Authenticated Endpoints: 26
-- Public Endpoints: 7
+- Total Endpoints: 2
+- Modules: 2
+- Authenticated Endpoints: 1
+- Public Endpoints: 1
 
 ## Modules
 
-- [Disciplines](docs/disciplines.md)
-- [Elastic Search](docs/elastic_search.md)
-- [Groups](docs/groups.md)
-- [Miscellaneous](docs/miscellaneous.md)
-- [N8N Ui](docs/n8n_ui.md)
-- [Specialties](docs/specialties.md)
-- [Teachers](docs/teachers.md)
-- [Timetable](docs/timetable.md)
+- [Posts](docs/posts.md)
 - [Users](docs/users.md)

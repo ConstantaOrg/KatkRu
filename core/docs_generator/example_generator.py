@@ -237,16 +237,21 @@ class ExampleGenerator:
         for param in endpoint.parameters:
             example_value = self._generate_parameter_value(param)
             
-            if param.location == 'query':
-                request_data["query_params"][param.name] = example_value
-            elif param.location == 'path':
-                request_data["path_params"][param.name] = example_value
-            elif param.location == 'header':
-                request_data["headers"][param.name] = example_value
-            elif param.location == 'body':
-                if request_data["body"] is None:
-                    request_data["body"] = {}
-                request_data["body"][param.name] = example_value
+            # Import constants
+            from core.utils.anything import ParameterLocations
+            
+            # Parameter location handlers
+            location_handlers = {
+                ParameterLocations.query: lambda: request_data["query_params"].__setitem__(param.name, example_value),
+                ParameterLocations.path: lambda: request_data["path_params"].__setitem__(param.name, example_value),
+                ParameterLocations.header: lambda: request_data["headers"].__setitem__(param.name, example_value),
+                ParameterLocations.body: lambda: self._handle_body_parameter(request_data, param.name, example_value),
+            }
+            
+            # Execute the appropriate handler
+            handler = location_handlers.get(param.location)
+            if handler:
+                handler()
         
         # Generate request body from Pydantic model if available
         if endpoint.request_body and endpoint.method in ['POST', 'PUT', 'PATCH']:
@@ -276,6 +281,12 @@ class ExampleGenerator:
             response_data["body"] = self._generate_generic_response(endpoint)
         
         return response_data
+    
+    def _handle_body_parameter(self, request_data: dict, param_name: str, example_value: Any) -> None:
+        """Handle body parameter assignment."""
+        if request_data["body"] is None:
+            request_data["body"] = {}
+        request_data["body"][param_name] = example_value
     
     def _generate_parameter_value(self, param: Parameter) -> Any:
         """Generate an example value for a parameter based on its type."""
@@ -415,41 +426,50 @@ class ExampleGenerator:
     
     def _generate_generic_response(self, endpoint: EndpointInfo) -> Dict[str, Any]:
         """Generate a generic response based on endpoint characteristics."""
-        # Generate response based on HTTP method
-        if endpoint.method == 'GET':
-            if 'list' in endpoint.function_name.lower() or 'all' in endpoint.function_name.lower():
-                return {
-                    "data": [
-                        {"id": 1, "name": "Example Item 1"},
-                        {"id": 2, "name": "Example Item 2"}
-                    ],
-                    "total": 2
-                }
-            else:
-                return {
-                    "id": 123,
-                    "name": "Example Item",
-                    "created_at": "2024-01-01T00:00:00Z"
-                }
-        elif endpoint.method == 'POST':
-            return {
+        # Import constants
+        from core.utils.anything import HttpMethods
+        
+        # Response generators for different HTTP methods
+        response_generators = {
+            HttpMethods.GET: self._generate_get_response,
+            HttpMethods.POST: lambda ep: {
                 "id": 123,
                 "message": "Resource created successfully",
                 "created_at": "2024-01-01T00:00:00Z"
-            }
-        elif endpoint.method == 'PUT':
-            return {
+            },
+            HttpMethods.PUT: lambda ep: {
                 "id": 123,
                 "message": "Resource updated successfully",
                 "updated_at": "2024-01-01T00:00:00Z"
-            }
-        elif endpoint.method == 'DELETE':
-            return {
+            },
+            HttpMethods.DELETE: lambda ep: {
                 "message": "Resource deleted successfully"
+            }
+        }
+        
+        # Get the appropriate response generator
+        generator = response_generators.get(endpoint.method)
+        if generator:
+            return generator(endpoint)
+        else:
+            # Default response for unknown methods
+            return {"message": "Operation completed successfully"}
+    
+    def _generate_get_response(self, endpoint: EndpointInfo) -> Dict[str, Any]:
+        """Generate GET response based on endpoint function name."""
+        if 'list' in endpoint.function_name.lower() or 'all' in endpoint.function_name.lower():
+            return {
+                "data": [
+                    {"id": 1, "name": "Example Item 1"},
+                    {"id": 2, "name": "Example Item 2"}
+                ],
+                "total": 2
             }
         else:
             return {
-                "message": "Operation completed successfully"
+                "id": 123,
+                "name": "Example Item",
+                "created_at": "2024-01-01T00:00:00Z"
             }
     
     def _build_url(self, endpoint: EndpointInfo, request_data: Dict[str, Any]) -> str:

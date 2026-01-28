@@ -2,6 +2,7 @@
 source = core
 omit =
     core/api/one_time_scripts/*
+    core/response_schemas/*
     core/utils/logger.py
 
 
