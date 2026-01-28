@@ -5,6 +5,7 @@ from fastapi.params import Depends
 from starlette.requests import Request
 
 from core.config_dir.config import pool_settings
+from core.data.sql_queries.disciplines_sql import DisciplinesQueries
 from core.data.sql_queries.groups_sql import GroupsQueries
 from core.data.sql_queries.n8n_iu_sql import N8NIUQueries
 from core.data.sql_queries.specialties_sql import SpecsQueries
@@ -23,6 +24,7 @@ class PgSql:
         self.n8n_ui = N8NIUQueries(conn)
         self.groups = GroupsQueries(conn)
         self.teachers = TeachersQueries(conn)
+        self.disciplines = DisciplinesQueries(conn)
 
 
 connection: Optional[Pool] = None

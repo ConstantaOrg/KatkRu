@@ -14,7 +14,7 @@ class DisciplinesGetResponse(BaseResponse):
     Ответ для GET /private/disciplines/get
     Возвращает список дисциплин с пагинацией.
     """
-    teachers: List[Dict[str, Any]] = Field(
+    disciplines: List[Dict[str, Any]] = Field(
         ...,
         description="Список дисциплин (поле названо teachers из-за копирования кода)",
         example=[

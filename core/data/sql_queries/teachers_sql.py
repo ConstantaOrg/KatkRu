@@ -14,13 +14,13 @@ class TeachersQueries:
         res = await self.conn.fetch(query, limit, offset)
         return res
 
-    async def add(self, group_name: str):
+    async def add(self, fio: str):
         query = '''
         INSERT INTO teachers (fio) VALUES ($1)
         ON CONFLICT (fio) DO NOTHING
         RETURNING id
         '''
-        res = await self.conn.fetchval(query, group_name)
+        res = await self.conn.fetchval(query, fio)
         return res
 
     async def switch_status(self, ids2active, ids2deprecated):

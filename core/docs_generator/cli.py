@@ -5,12 +5,10 @@ Command Line Interface for API Documentation Generator.
 import argparse
 import logging
 import sys
-import os
-from typing import Optional, Dict, Any
+from typing import Optional
 from pathlib import Path
 
 from .generator import DocumentationGenerator
-from .models import EndpointInfo
 from .config import ConfigManager, DocumentationConfig
 
 

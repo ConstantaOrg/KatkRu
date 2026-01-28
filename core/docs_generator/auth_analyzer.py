@@ -4,7 +4,7 @@ Authentication and authorization analyzer for API endpoints.
 
 import ast
 import inspect
-from typing import List, Optional, Tuple, Callable, Any
+from typing import List, Tuple, Callable
 from fastapi.routing import APIRoute
 from fastapi.dependencies.utils import get_dependant
 
