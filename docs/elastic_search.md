@@ -10,12 +10,14 @@
 | POST | `/api/v1/public/elastic/ext_spec` | deep_search | ✗ | код специальности и название склеить на фронте(воз... |
 
 ### Database Tables
+
 - `elasticsearch_indexes`
 - `search_cache`
 
 ### Data Schemas
-- `AutocompleteSearchSchema`
+
 - `DeepSearchResponse`
+- `AutocompleteSearchSchema`
 - `AutocompleteSearchResponse`
 - `DeepSearchSchema`
 

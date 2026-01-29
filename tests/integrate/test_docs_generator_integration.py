@@ -10,7 +10,7 @@ import json
 from pathlib import Path
 from unittest.mock import Mock, patch
 
-from core.docs_generator.generator import DocumentationGenerator
+from core.docs_generator.documentation_generator import DocumentationGenerator
 from core.docs_generator.cli import DocumentationCLI
 from core.main import app
 
@@ -211,14 +211,14 @@ class TestDocumentationGeneratorIntegration:
         validation_result = generator.validate_documentation()
         
         # Verify validation structure
-        assert 'valid' in validation_result, "Validation should have 'valid' field"
-        assert 'warnings' in validation_result, "Validation should have 'warnings' field"
-        assert 'errors' in validation_result, "Validation should have 'errors' field"
+        assert hasattr(validation_result, 'valid'), "Validation should have 'valid' field"
+        assert hasattr(validation_result, 'warnings'), "Validation should have 'warnings' field"
+        assert hasattr(validation_result, 'errors'), "Validation should have 'errors' field"
         
         # Verify validation results are reasonable
-        assert isinstance(validation_result['valid'], bool), "Valid should be boolean"
-        assert isinstance(validation_result['warnings'], list), "Warnings should be a list"
-        assert isinstance(validation_result['errors'], list), "Errors should be a list"
+        assert isinstance(validation_result.valid, bool), "Valid should be boolean"
+        assert isinstance(validation_result.warnings, list), "Warnings should be a list"
+        assert isinstance(validation_result.errors, list), "Errors should be a list"
 
 
 class TestDocumentationCLIIntegration:

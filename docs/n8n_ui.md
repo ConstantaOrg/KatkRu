@@ -17,35 +17,34 @@
 | PUT | `/api/v1/private/n8n_ui/cards/accept` | switch_card_status | ✓ |  |
 
 ### Database Tables
+
 - `disciplines`
 - `groups`
 - `specialties`
 - `teachers`
 
 ### Data Schemas
-- `StdTtableSchema`
-- `SnapshotTtableSchema`
-- `CreateTtableSchema`
-- `CardsGetByIdResponse`
-- `CardsSaveResponse`
-- `CurrentTtableGetAllResponse`
+
+- `CardsContentResponse`
 - `CardsAcceptResponse`
 - `StdTtableCheckExistsResponse`
-- `CardsHistoryResponse`
-- `CardsContentResponse`
-- `StdTtableGetAllResponse`
-- `TtableCreateResponse`
-- `SaveCardSchema`
 - `ExtCardStateSchema`
+- `SaveCardSchema`
+- `CardsSaveResponse`
+- `CardsHistoryResponse`
+- `StdTtableGetAllResponse`
+- `SnapshotTtableSchema`
+- `CurrentTtableGetAllResponse`
+- `TtableCreateResponse`
+- `StdTtableLoadSchema`
+- `CardsGetByIdResponse`
+- `StdTtableSchema`
+- `CreateTtableSchema`
 
 ### Usage Examples
 
 #### Successful POST request to /api/v1/private/n8n_ui/ttable/create
 Example of a successful post request to the create_ttable endpoint.
-> **ℹ️ INFO:** 🏗️ Создает новую версию расписания в статусе 'pending'.
-
-> **💡 TIP:** 💡 После создания версии используйте другие эндпоинты для добавления карточек.
-
 
 **Request:**
 ```bash

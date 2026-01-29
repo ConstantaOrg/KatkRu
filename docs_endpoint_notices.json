@@ -28,3 +28,4 @@
     "performance - замечания по производительности"
   ]
 }
+python -m core.docs_generator.cli --app core.main:app --output ./docs --format markdown

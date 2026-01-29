@@ -10,7 +10,7 @@ import re
 from pathlib import Path
 from typing import Dict, Any, List
 
-from core.docs_generator.generator import DocumentationGenerator
+from core.docs_generator.documentation_generator import DocumentationGenerator
 from core.main import app
 
 
@@ -381,12 +381,12 @@ class TestDocumentationValidationEdgeCases:
         validation_result = generator.validate_documentation()
         
         # Should complete validation without errors
-        assert 'valid' in validation_result, "Should return validation result"
-        assert isinstance(validation_result['valid'], bool), "Valid field should be boolean"
+        assert hasattr(validation_result, 'valid'), "Should return validation result"
+        assert isinstance(validation_result.valid, bool), "Valid field should be boolean"
         
         # Should provide meaningful feedback
-        assert 'warnings' in validation_result, "Should provide warnings"
-        assert 'errors' in validation_result, "Should provide errors"
+        assert hasattr(validation_result, 'warnings'), "Should provide warnings"
+        assert hasattr(validation_result, 'errors'), "Should provide errors"
     
     def test_file_output_validation(self, generator):
         """

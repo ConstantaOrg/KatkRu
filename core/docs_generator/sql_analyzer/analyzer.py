@@ -6,7 +6,7 @@ import importlib
 from typing import List, Dict, Set
 
 from .models import SQLQueryInfo
-from .constants import QUERIES_CLASSES
+from .constants import QUERIES_CLASSES, dependency_types
 from .handlers import extract_queries_from_class
 from ..models import Dependency
 
@@ -48,7 +48,7 @@ class SQLAnalyzer:
         # Check which queries are used by the endpoint dependencies
         for dependency in endpoint_dependencies:
             # Check if dependency is related to database operations
-            if dependency.type in ['database', 'function']:
+            if dependency.type in dependency_types:
                 # Look for matching queries based on dependency name
                 for class_name, queries in all_queries.items():
                     for query_info in queries:

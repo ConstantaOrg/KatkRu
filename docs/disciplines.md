@@ -11,27 +11,25 @@
 | POST | `/api/v1/private/disciplines/add` | add_discipline | ✓ |  |
 
 ### Database Tables
+
 - `disciplines`
 - `specialties`
 - `teachers`
 - `timetable`
 
 ### Data Schemas
-- `TeachersPagenSchema`
-- `DisciplineAddSchema`
-- `DisciplinesGetResponse`
-- `DisciplinesAddResponse`
+
 - `DisciplinesUpdateResponse`
 - `DisciplineUpdateSchema`
+- `DisciplinesAddResponse`
+- `TeachersPagenSchema`
+- `DisciplinesGetResponse`
+- `DisciplineAddSchema`
 
 ### Usage Examples
 
 #### Successful GET request to /api/v1/private/disciplines/get
 Example of a successful get request to the get_disciplines endpoint.
-> **ℹ️ INFO:** 📚 Поддерживает пагинацию через параметры limit и offset.
-
-> **💡 TIP:** 💡 Для лучшей производительности рекомендуется использовать limit не более 100.
-
 
 **Request:**
 ```bash
@@ -41,7 +39,7 @@ curl -X GET -v -H "Authorization: Bearer YOUR_JWT_TOKEN" "https://api.example.co
 **Response:**
 ```json
 {
-  "teachers": [
+  "disciplines": [
     {
       "code": "MATH-101",
       "created_at": "2024-01-01T00:00:00Z",

@@ -8,7 +8,7 @@ from fastapi import FastAPI, APIRouter
 from fastapi.routing import APIRoute
 from typing import Optional
 
-from core.docs_generator.analyzer import EndpointAnalyzer
+from core.docs_generator.endpoint_analyzer import EndpointAnalyzer
 from core.docs_generator.models import EndpointInfo, Parameter
 
 
@@ -158,7 +158,12 @@ class TestEndpointAnalyzer:
             async def test_func():
                 return {"test": True}
             
-            actual_module = self.analyzer._determine_module(path, test_func)
+            router = APIRouter()
+            router.add_api_route(path, test_func, methods=["GET"])
+            route = router.routes[0]
+            
+            endpoint_info = self.analyzer.analyze_endpoint(route)
+            actual_module = endpoint_info.module
             assert actual_module == expected_module, f"Path {path} should map to {expected_module}, got {actual_module}"
     
     def test_auth_requirements_detection(self):

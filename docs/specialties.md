@@ -10,12 +10,14 @@
 | GET | `/api/v1/public/specialties/{spec_id}` | specialties_get | ✗ |  |
 
 ### Database Tables
+
 - `groups`
 - `specialties`
 
 ### Data Schemas
-- `SpecsPaginSchema`
+
 - `SpecialtiesAllResponse`
+- `SpecsPaginSchema`
 - `SpecialtyGetResponse`
 
 ### Usage Examples

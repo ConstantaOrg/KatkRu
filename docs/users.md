@@ -11,17 +11,18 @@
 | PUT | `/api/v1/private/users/logout` | log_out | ✓ |  |
 | POST | `/api/v1/private/users/seances` | show_seances | ✓ | Все Устройства аккаунта |
 | PUT | `/api/v1/server/users/passw/set_new_passw` | reset_password | ✓ |  |
-| PUT | `/api/v1/private/users/any` | any_users | ✓ |  |
 
 ### Database Tables
+
 - `roles`
 - `user_sessions`
 - `users`
 
 ### Data Schemas
-- `UpdatePasswSchema`
-- `UserRegSchema`
+
 - `UserLogInSchema`
+- `UserRegSchema`
+- `UpdatePasswSchema`
 
 ### Usage Examples
 

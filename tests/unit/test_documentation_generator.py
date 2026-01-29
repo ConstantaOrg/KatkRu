@@ -10,7 +10,7 @@ from unittest.mock import Mock, MagicMock
 from fastapi import FastAPI
 from fastapi.routing import APIRoute
 
-from core.docs_generator.generator import DocumentationGenerator
+from core.docs_generator.documentation_generator import DocumentationGenerator
 from core.docs_generator.models import EndpointInfo, Parameter, Dependency, DependencyChain
 
 
@@ -330,10 +330,10 @@ class TestDocumentationGenerator:
         """Test documentation validation functionality."""
         # Test with no endpoints
         validation = self.generator.validate_documentation()
-        assert 'valid' in validation
-        assert 'warnings' in validation
-        assert 'errors' in validation
-        assert not validation['valid']  # Should be invalid with no endpoints
+        assert hasattr(validation, 'valid')
+        assert hasattr(validation, 'warnings')
+        assert hasattr(validation, 'errors')
+        assert not validation.valid  # Should be invalid with no endpoints
         
         # Test with mock endpoints
         mock_endpoint = EndpointInfo(
@@ -353,7 +353,7 @@ class TestDocumentationGenerator:
         self.generator.endpoints = [mock_endpoint]
         validation = self.generator.validate_documentation()
         
-        assert len(validation['warnings']) >= 2  # Should have warnings for missing description and dependencies
+        assert len(validation.warnings) >= 2  # Should have warnings for missing description and dependencies
     
     def test_markdown_formatting(self):
         """Test Markdown formatting functionality."""
@@ -489,6 +489,8 @@ class TestDocumentationGenerator:
     
     def test_format_module_markdown(self):
         """Test individual module Markdown formatting."""
+        from core.docs_generator.documentation_generator import handlers
+        
         mock_endpoint = type('MockEndpoint', (), {
             'method': 'POST',
             'path': '/test/create',
@@ -506,7 +508,7 @@ class TestDocumentationGenerator:
             'examples': []
         })()
         
-        markdown_lines = self.generator._format_module_markdown('test_module', mock_module)
+        markdown_lines = handlers.format_module_markdown('test_module', mock_module)
         markdown_content = '\n'.join(markdown_lines)
         
         # Verify module header
@@ -528,6 +530,8 @@ class TestDocumentationGenerator:
     
     def test_format_example_markdown(self):
         """Test individual example Markdown formatting."""
+        from core.docs_generator.documentation_generator import handlers
+        
         mock_example = type('MockExample', (), {
             'title': 'Create User Example',
             'description': 'Example of creating a new user',
@@ -542,7 +546,7 @@ class TestDocumentationGenerator:
             }
         })()
         
-        markdown_lines = self.generator._format_example_markdown(mock_example, 1)
+        markdown_lines = handlers.format_example_markdown(mock_example, 1)
         markdown_content = '\n'.join(markdown_lines)
         
         # Verify example structure

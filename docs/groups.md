@@ -11,17 +11,19 @@
 | POST | `/api/v1/private/groups/add` | add_group | ✓ |  |
 
 ### Database Tables
+
 - `buildings`
 - `groups`
 - `specialties`
 
 ### Data Schemas
+
 - `GroupsUpdateResponse`
-- `GroupPagenSchema`
-- `GroupUpdateSchema`
+- `GroupsAddResponse`
 - `GroupsGetResponse`
 - `GroupAddSchema`
-- `GroupsAddResponse`
+- `GroupPagenSchema`
+- `GroupUpdateSchema`
 
 ### Usage Examples
 

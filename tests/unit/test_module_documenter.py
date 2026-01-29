@@ -6,7 +6,7 @@ import pytest
 from hypothesis import given, strategies as st
 from typing import List
 
-from core.docs_generator.documenter import ModuleDocumenter
+from core.docs_generator.module_documenter import ModuleDocumenter
 from core.docs_generator.models import EndpointInfo, Parameter, Dependency, ModuleDocumentation
 
 

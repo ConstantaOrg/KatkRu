@@ -8,8 +8,8 @@ from pathlib import Path
 
 from core.docs_generator.integration_documenter import (
     IntegrationDocumenter,
-    ExternalService,
     DatabaseTable,
+    ExternalService,
     IntegrationDocumentation
 )
 
@@ -103,8 +103,8 @@ class TestIntegrationDocumenter:
         assert "overview" in schema
         assert "core_entities" in schema
         assert "timetable_system" in schema
-        assert "relationships_map" in schema
-        assert "indexes_and_constraints" in schema
+        assert "user_management" in schema
+        assert "data_integrity" in schema
         
         # Check core entities
         core_entities = schema["core_entities"]
@@ -120,11 +120,11 @@ class TestIntegrationDocumenter:
         assert "workflow" in timetable_system
         assert len(timetable_system["workflow"]) >= 4
         
-        # Check relationships
-        relationships = schema["relationships_map"]
-        assert "one_to_many" in relationships
-        assert "many_to_many" in relationships
-        assert "many_to_one" in relationships
+        # Check user management
+        user_management = schema["user_management"]
+        assert "overview" in user_management
+        assert "roles" in user_management
+        assert "authentication" in user_management
     
     def test_document_timetable_versioning_logic(self):
         """Test timetable versioning logic documentation."""
@@ -132,19 +132,17 @@ class TestIntegrationDocumenter:
         
         assert isinstance(versioning, dict)
         assert "overview" in versioning
-        assert "version_statuses" in versioning
-        assert "version_types" in versioning
-        assert "workflow" in versioning
-        assert "constraints" in versioning
-        assert "tables_involved" in versioning
+        assert "version_lifecycle" in versioning
+        assert "cards_system" in versioning
+        assert "conflict_resolution" in versioning
+        assert "rollback_mechanism" in versioning
+        assert "performance_optimization" in versioning
         
         # Check specific content
-        assert "pending" in versioning["version_statuses"]
-        assert "accepted" in versioning["version_statuses"]
-        assert "standard" in versioning["version_types"]
-        assert "daily" in versioning["version_types"]
-        assert isinstance(versioning["tables_involved"], list)
-        assert len(versioning["tables_involved"]) >= 3
+        assert "черновик" in versioning["version_lifecycle"]
+        assert "активная" in versioning["version_lifecycle"]
+        assert "cards_states_history" in versioning["cards_system"]
+        assert "cards_states_details" in versioning["cards_system"]
     
     def test_extract_environment_variables(self):
         """Test environment variables extraction."""
@@ -155,42 +153,35 @@ class TestIntegrationDocumenter:
         
         # Check for required variables
         env_var_text = " ".join(env_vars)
-        assert "pg_user" in env_var_text
-        assert "pg_password" in env_var_text
-        assert "redis_host" in env_var_text
-        assert "elastic_host" in env_var_text
-        assert "APP_MODE" in env_var_text
-        assert "search_index" in env_var_text
+        assert "POSTGRES_USER" in env_var_text
+        assert "POSTGRES_PASSWORD" in env_var_text
+        assert "REDIS_HOST" in env_var_text
+        assert "ELASTICSEARCH_HOST" in env_var_text
+        assert "JWT_SECRET_KEY" in env_var_text
+        assert "ELASTICSEARCH_INDEX_PREFIX" in env_var_text
     
     def test_document_connection_setup(self):
         """Test connection setup documentation."""
         setup = self.documenter.document_connection_setup()
         
         assert isinstance(setup, dict)
-        assert "postgresql_setup" in setup
-        assert "redis_setup" in setup
-        assert "elasticsearch_setup" in setup
-        assert "environment_modes" in setup
+        assert "postgresql" in setup
+        assert "redis" in setup
+        assert "elasticsearch" in setup
         
         # Check setup instructions
-        pg_setup = setup["postgresql_setup"]
+        pg_setup = setup["postgresql"]
         assert "переменные окружения" in pg_setup
-        assert "asyncpg.create_pool" in pg_setup
-        assert "dependency injection" in pg_setup
+        assert "POSTGRES_HOST" in pg_setup
+        assert "Пул соединений" in pg_setup
         
-        redis_setup = setup["redis_setup"]
-        assert "Redis клиент" in redis_setup
-        assert "decode_responses=True" in redis_setup
+        redis_setup = setup["redis"]
+        assert "Redis подключение" in redis_setup
+        assert "REDIS_HOST" in redis_setup
         
-        es_setup = setup["elasticsearch_setup"]
-        assert "AsyncElasticsearch" in es_setup
-        assert "индексы" in es_setup
-        
-        # Check environment modes
-        env_modes = setup["environment_modes"]
-        assert "local" in env_modes
-        assert "docker" in env_modes
-        assert "prod" in env_modes
+        es_setup = setup["elasticsearch"]
+        assert "Elasticsearch подключение" in es_setup
+        assert "ELASTICSEARCH_HOST" in es_setup
     
     def test_generate_integration_documentation(self):
         """Test complete integration documentation generation."""
@@ -223,11 +214,11 @@ class TestIntegrationDocumenter:
         assert len(markdown) > 1000  # Should be substantial content
         
         # Check for main sections
-        assert "# Интеграции и База Данных" in markdown
-        assert "## Внешние Сервисы" in markdown
-        assert "## Структура Базы Данных" in markdown
-        assert "## Настройка Подключений" in markdown
-        assert "## Переменные Окружения" in markdown
+        assert "# Интеграции и внешние сервисы" in markdown
+        assert "## Внешние сервисы" in markdown
+        assert "## Таблицы базы данных" in markdown
+        assert "## Настройка подключений" in markdown
+        assert "## Переменные окружения" in markdown
         
         # Check for service documentation
         assert "### PostgreSQL" in markdown
@@ -235,15 +226,14 @@ class TestIntegrationDocumenter:
         assert "### Elasticsearch" in markdown
         
         # Check for database documentation
-        assert "### Обзор Схемы" in markdown
-        assert "### Основные Сущности" in markdown
-        assert "### Система Расписания" in markdown
-        assert "### Связи Между Таблицами" in markdown
+        assert "### specialties" in markdown
+        assert "### groups" in markdown
+        assert "### teachers" in markdown
         
         # Check for specific content
         assert "asyncpg" in markdown
         assert "полнотекстового поиска" in markdown
-        assert "версионирование" in markdown
+        assert "Версионирование" in markdown
     
     def test_database_table_relationships(self):
         """Test that database table relationships are properly documented."""

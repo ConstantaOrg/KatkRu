@@ -10,7 +10,7 @@ import os
 import json
 from pathlib import Path
 
-from core.docs_generator.generator import DocumentationGenerator
+from core.docs_generator.documentation_generator import DocumentationGenerator
 from core.main import app
 
 
@@ -406,16 +406,16 @@ class TestDocumentationPropertiesIntegration:
         # Should have required fields
         required_fields = ['valid', 'warnings', 'errors']
         for field in required_fields:
-            assert field in validation_result, f"Validation should have {field} field"
+            assert hasattr(validation_result, field), f"Validation should have {field} field"
         
         # Field types should be correct
-        assert isinstance(validation_result['valid'], bool), "Valid should be boolean"
-        assert isinstance(validation_result['warnings'], list), "Warnings should be list"
-        assert isinstance(validation_result['errors'], list), "Errors should be list"
+        assert isinstance(validation_result.valid, bool), "Valid should be boolean"
+        assert isinstance(validation_result.warnings, list), "Warnings should be list"
+        assert isinstance(validation_result.errors, list), "Errors should be list"
         
         # If there are errors, valid should be False
-        if len(validation_result['errors']) > 0:
-            assert validation_result['valid'] is False, "Should be invalid if there are errors"
+        if len(validation_result.errors) > 0:
+            assert validation_result.valid is False, "Should be invalid if there are errors"
     
     def test_integration_documentation_consistency(self, generator):
         """

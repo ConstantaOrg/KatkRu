@@ -6,6 +6,9 @@ from dataclasses import dataclass
 from typing import List
 
 
+dependency_types = {'database', 'function'}
+
+
 @dataclass
 class SQLKeywords:
     """SQL keywords for query analysis."""

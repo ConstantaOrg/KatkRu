@@ -1,0 +1,21 @@
+{
+  "app": "core.main:app",
+  "output": {
+    "directory": "docs/",
+    "format": "markdown",
+    "single_file": false,
+    "filename": "KatkRu Doc"
+  },
+  "analysis": {
+    "include_examples": true,
+    "include_dependencies": true,
+    "include_integration": true
+  },
+  "filters": {
+    "exclude_modules": ["one_time_scripts", "test_modules"]
+  },
+  "logging": {
+    "level": "INFO",
+    "file": null
+  }
+}

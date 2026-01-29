@@ -69,8 +69,3 @@ async def reset_password(update_secrets: UpdatePasswSchema, db: PgSqlDep, reques
     await db.users.set_new_passw(update_secrets.user_id, hashed_passw)
     log_event(f"Юзер сменил Пароль | user_id: {update_secrets.user_id}", request=request, level='WARNING')
     return {'success': True, 'message': 'Пароль обновлён!'}
-
-
-@router.put('/private/users/any')
-def any_users(request: Request, _: JWTCookieDep):
-    return {'success': True, 'user_id': request.state.user_id, 'session_id': request.state.session_id}

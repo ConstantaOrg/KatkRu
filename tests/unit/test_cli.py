@@ -170,8 +170,8 @@ class TestDocumentationCLI:
         # Test with step/total
         self.cli.show_progress("Test message", 1, 5)
     
-    @patch('core.docs_generator.cli.DocumentationGenerator')
-    @patch.object(DocumentationCLI, 'load_fastapi_app')
+    @patch('core.docs_generator.cli.handlers.DocumentationGenerator')
+    @patch('core.docs_generator.cli.handlers.load_fastapi_app')
     def test_generate_documentation_dry_run(self, mock_load_app, mock_generator_class):
         """Test documentation generation in dry run mode."""
         # Setup mocks
@@ -206,8 +206,8 @@ class TestDocumentationCLI:
         mock_generator.analyze_endpoints.assert_called_once()
         mock_generator.generate_documentation.assert_not_called()
     
-    @patch('core.docs_generator.cli.DocumentationGenerator')
-    @patch.object(DocumentationCLI, 'load_fastapi_app')
+    @patch('core.docs_generator.cli.handlers.DocumentationGenerator')
+    @patch('core.docs_generator.cli.handlers.load_fastapi_app')
     def test_generate_documentation_validate_only(self, mock_load_app, mock_generator_class):
         """Test documentation generation in validate-only mode."""
         # Setup mocks
@@ -243,8 +243,8 @@ class TestDocumentationCLI:
         assert result is True
         mock_generator.validate_documentation.assert_called_once()
     
-    @patch('core.docs_generator.cli.DocumentationGenerator')
-    @patch.object(DocumentationCLI, 'load_fastapi_app')
+    @patch('core.docs_generator.cli.handlers.DocumentationGenerator')
+    @patch('core.docs_generator.cli.handlers.load_fastapi_app')
     @patch('builtins.open', create=True)
     @patch('os.makedirs')
     def test_generate_documentation_json_output(self, mock_makedirs, mock_open, mock_load_app, mock_generator_class):
@@ -256,12 +256,12 @@ class TestDocumentationCLI:
         mock_generator = Mock()
         mock_generator.analyze_endpoints.return_value = []
         mock_generator.generate_documentation.return_value = {"test": "data"}
-        mock_generator.get_documentation_summary.return_value = {
+        mock_generator.get_documentation_summary.return_value = type('DocumentationSummary', (), {
             'total_endpoints': 0,
             'modules': [],
             'auth_required_endpoints': 0,
             'public_endpoints': 0
-        }
+        })()
         mock_generator_class.return_value = mock_generator
         
         # Create config
@@ -288,8 +288,8 @@ class TestDocumentationCLI:
         assert result is True
         mock_json_dump.assert_called_once()
     
-    @patch('core.docs_generator.cli.DocumentationGenerator')
-    @patch.object(DocumentationCLI, 'load_fastapi_app')
+    @patch('core.docs_generator.cli.handlers.DocumentationGenerator')
+    @patch('core.docs_generator.cli.handlers.load_fastapi_app')
     @patch('os.makedirs')
     def test_generate_documentation_markdown_single_file(self, mock_makedirs, mock_load_app, mock_generator_class):
         """Test documentation generation with single Markdown file."""
@@ -301,12 +301,12 @@ class TestDocumentationCLI:
         mock_generator.analyze_endpoints.return_value = []
         mock_generator.generate_documentation.return_value = {"test": "data"}
         mock_generator.generate_markdown_file.return_value = "test_output/api_documentation.md"
-        mock_generator.get_documentation_summary.return_value = {
+        mock_generator.get_documentation_summary.return_value = type('DocumentationSummary', (), {
             'total_endpoints': 0,
             'modules': [],
             'auth_required_endpoints': 0,
             'public_endpoints': 0
-        }
+        })()
         mock_generator_class.return_value = mock_generator
         
         # Create config

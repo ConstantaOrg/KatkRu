@@ -67,7 +67,7 @@ async def create_ttable(body: ExtCardStateSchema, db: PgSqlDep, request: Request
 
 @router.post("/cards/save", dependencies=[Depends(role_require(Roles.methodist))], response_model=CardsSaveResponse)
 async def save_card(body: SaveCardSchema, db: PgSqlDep, request: Request, _: JWTCookieDep):
-    new_card_hist_id = await db.n8n_ui.save_card(body.card_hist_id, body.ttable_id, request.state.user_id, json.dumps([lesson.model_dump() for lesson in body.lessons], ensure_ascii=False))
+    new_card_hist_id = await db.n8n_ui.save_card(body.card_hist_id, body.ttable_id, request.state.user_id, body.lessons)
     if isinstance(new_card_hist_id, int):
         log_event(
             f"Сохранение карточки Успешно! | new_card_hist_id: \033[31m{new_card_hist_id}\033[0m; old_card_hist_id: \033[32m{body.card_hist_id}\033[0m; sched_ver_id: \033[35m{body.ttable_id}\033[0m; user_id: \033[33m{request.state.user_id}\033[0m",

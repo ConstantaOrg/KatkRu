@@ -12,6 +12,7 @@
 | PUT | `/api/v1/private/ttable/versions/commit` | accept_ttable_version | ✓ |  |
 
 ### Database Tables
+
 - `disciplines`
 - `groups`
 - `teachers`
@@ -19,13 +20,14 @@
 - `ttable_versions`
 
 ### Data Schemas
-- `TimetableGetResponse`
+
 - `TtableVersionsCommitResponse`
-- `TtableVersionsPreCommitResponse`
-- `PreAcceptTimetableSchema`
-- `ScheduleFilterSchema`
 - `TimetableImportResponse`
+- `ScheduleFilterSchema`
+- `TimetableGetResponse`
+- `TtableVersionsPreCommitResponse`
 - `CommitTtableVersionSchema`
+- `PreAcceptTimetableSchema`
 
 ### Usage Examples
 

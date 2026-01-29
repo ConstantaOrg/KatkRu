@@ -11,16 +11,18 @@
 | POST | `/api/v1/private/teachers/add` | add_teacher | ✓ |  |
 
 ### Database Tables
+
 - `disciplines`
 - `teachers`
 
 ### Data Schemas
-- `TeachersPagenSchema`
-- `TeachersAddSchema`
-- `TeachersAddResponse`
+
+- `TeachersGetResponse`
 - `TeachersUpdateResponse`
 - `TeachersUpdateSchema`
-- `TeachersGetResponse`
+- `TeachersAddResponse`
+- `TeachersAddSchema`
+- `TeachersPagenSchema`
 
 ### Usage Examples
 
