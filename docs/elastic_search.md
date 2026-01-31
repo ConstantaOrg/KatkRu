@@ -8,6 +8,7 @@
 |--------|------|----------|---------------|-------------|
 | POST | `/api/v1/public/elastic/autocomplete_spec` | fast_search | ✗ | код специальности и название склеить на фронте(воз... |
 | POST | `/api/v1/public/elastic/ext_spec` | deep_search | ✗ | код специальности и название склеить на фронте(воз... |
+| POST | `/api/v1/public/elastic/search_group` | fast_search | ✗ |  |
 
 ### Database Tables
 
@@ -16,10 +17,11 @@
 
 ### Data Schemas
 
-- `DeepSearchResponse`
-- `AutocompleteSearchSchema`
-- `AutocompleteSearchResponse`
 - `DeepSearchSchema`
+- `AutocompleteSearchSchema`
+- `BaseSpecSearchSchema`
+- `DeepSearchResponse`
+- `AutocompleteSearchResponse`
 
 ### Usage Examples
 

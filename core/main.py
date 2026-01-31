@@ -8,9 +8,8 @@ from redis.asyncio import Redis
 from starlette.middleware.cors import CORSMiddleware
 
 from core.api import main_router
-from core.api.elastic_search import init_elasticsearch_index
+from core.api.elastic_search.api_elastic_search import init_elasticsearch_index
 from core.api.middleware import AuthUXASGIMiddleware
-from core.api.one_time_scripts import unnecessary_router
 from core.config_dir.config import pool_settings, env, es_settings, redis_settings
 
 
@@ -26,7 +25,7 @@ async def lifespan(web_app):
 
     "Иниц. индекса в Elasticsearch"
     if env.es_init:
-        await init_elasticsearch_index("specs_index", web_app.state.pg_pool, web_app.state.es_client)
+        await init_elasticsearch_index(["specs_index", "group_index"], web_app.state.pg_pool, web_app.state.es_client)
     try:
         yield
     finally:

@@ -8,24 +8,39 @@ from core.schemas.users_schema import TokenPayloadSchema, UserRegSchema, UserLog
 from core.utils.anything import hide_log_param
 from core.utils.jwt_factory import issue_aT_rT
 from core.utils.logger import log_event
+from core.utils.response_model_utils import (
+    UserRegistrationSuccessResponse, UserRegistrationConflictResponse,
+    UserLoginSuccessResponse, UserLoginUnauthorizedResponse,
+    create_user_registration_response, create_user_login_response, create_response_json
+)
 
 router = APIRouter(tags=['Users👤'])
 
 
 
-@router.post('/server/users/sign_up', summary="Регистрация")
+@router.post('/server/users/sign_up', summary="Регистрация", responses={
+    200: {"model": UserRegistrationSuccessResponse, "description": "User registered successfully"},
+    409: {"model": UserRegistrationConflictResponse, "description": "User already exists"}
+})
 async def registration_user(creds: UserRegSchema, db: PgSqlDep, request: Request):
     insert_attempt = await db.users.reg_user(creds.email, creds.passw, creds.name)
 
     if not insert_attempt:
         log_event(f"Пользователь с email: {hide_log_param(creds.email)} Уже существует", request=request, level='WARNING')
-        raise HTTPException(status_code=409, detail='Пользователь уже существует')
+        # Use @overload function for type-safe conflict response
+        response = create_user_registration_response(success=False)
+        return create_response_json(response, status_code=409)
 
     log_event(f"Новый пользователь! email: {hide_log_param(creds.email)}", request=request)
-    return {'success': True, 'message': 'Пользователь добавлен'}
+    # Use @overload function for type-safe success response
+    response = create_user_registration_response(success=True)
+    return create_response_json(response, status_code=200)
 
 
-@router.post('/public/users/login', summary="Вход в аккаунт")
+@router.post('/public/users/login', summary="Вход в аккаунт", responses={
+    200: {"model": UserLoginSuccessResponse, "description": "User logged in successfully"},
+    401: {"model": UserLoginUnauthorizedResponse, "description": "Invalid credentials"}
+})
 @rate_limit(5, 300)
 async def log_in(creds: UserLogInSchema, response: Response, db: PgSqlDep, request: Request):
     db_user = await db.users.select_user(creds.email)
@@ -42,9 +57,14 @@ async def log_in(creds: UserLogInSchema, response: Response, db: PgSqlDep, reque
         response.set_cookie('access_token', access_token, **AccToken().model_dump())
         response.set_cookie('refresh_token', refresh_token, **RtToken().model_dump())
         log_event("Пользователь Вошёл в акк | user_id: %s", db_user['id'], request=request)
-        return {'success': True, 'message': 'Куки у Юзера'}
+        # Use @overload function for type-safe success response
+        login_response = create_user_login_response(success=True)
+        return create_response_json(login_response, status_code=200)
+    
     log_event(f"Пользователь с email: {hide_log_param(creds.email)} Не смог войти", request=request, level='WARNING')
-    raise HTTPException(status_code=401, detail='Неверный логин или пароль. Если вы входили через Google/Github и т.п. Пройдите регистрацию, чтобы установить пароль')
+    # Use @overload function for type-safe unauthorized response
+    login_response = create_user_login_response(success=False)
+    return create_response_json(login_response, status_code=401)
 
 
 @router.put('/private/users/logout')

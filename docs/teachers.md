@@ -17,12 +17,11 @@
 
 ### Data Schemas
 
-- `TeachersGetResponse`
-- `TeachersUpdateResponse`
 - `TeachersUpdateSchema`
-- `TeachersAddResponse`
-- `TeachersAddSchema`
+- `TeachersUpdateResponse`
+- `TeachersGetResponse`
 - `TeachersPagenSchema`
+- `TeachersAddSchema`
 
 ### Usage Examples
 
@@ -39,15 +38,11 @@ curl -X GET -v -H "Authorization: Bearer YOUR_JWT_TOKEN" -d '{"pagen":1}' "https
 {
   "teachers": [
     {
-      "created_at": "2024-01-01T00:00:00Z",
-      "disciplines_count": 3,
       "fio": "Иванов Иван Иванович",
       "id": 1,
       "is_active": true
     },
     {
-      "created_at": "2024-01-01T00:00:00Z",
-      "disciplines_count": 2,
       "fio": "Петрова Анна Сергеевна",
       "id": 2,
       "is_active": true

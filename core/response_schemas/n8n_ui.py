@@ -256,11 +256,19 @@ class CardsContentResponse(BaseResponse):
 
 
 # Response схемы для сложных эндпоинтов (до 3 уровней)
-class DiffItem(BaseModel):
-    """Элемент различия в данных."""
-    id: int = Field(..., description="ID элемента")
-    name: str = Field(..., description="Название элемента")
-    status: str = Field(..., description="Статус различия (added/modified/removed/unchanged)")
+class GroupDiffItem(BaseModel):
+    """Элемент различия в группах."""
+    name: str = Field(..., description="Название группы")
+
+
+class TeacherDiffItem(BaseModel):
+    """Элемент различия в преподавателях."""
+    fio: str = Field(..., description="ФИО преподавателя")
+
+
+class DisciplineDiffItem(BaseModel):
+    """Элемент различия в дисциплинах."""
+    title: str = Field(..., description="Название дисциплины")
 
 
 class StdTtableCheckExistsResponse(BaseResponse):
@@ -268,139 +276,42 @@ class StdTtableCheckExistsResponse(BaseResponse):
     Ответ для POST /private/n8n_ui/std_ttable/check_exists
     Проверка актуальности выгрузки данных из стандартного расписания.
     """
-    diff_groups: List[DiffItem] = Field(
+    diff_groups: List[GroupDiffItem] = Field(
         ...,
         description="Различия в группах",
         example=[
             {
-                "id": 1,
-                "name": "ИС-21-1",
-                "status": "added"
+                "name": "ИС-21-1"
             },
             {
-                "id": 2,
-                "name": "ПР-21-1", 
-                "status": "modified"
+                "name": "ПР-21-1"
             }
         ]
     )
-    diff_teachers: List[DiffItem] = Field(
+    diff_teachers: List[TeacherDiffItem] = Field(
         ...,
         description="Различия в преподавателях",
         example=[
             {
-                "id": 3,
-                "name": "Иванов И.И.",
-                "status": "modified"
+                "fio": "Иванов И.И."
             },
             {
-                "id": 4,
-                "name": "Петрова А.С.",
-                "status": "unchanged"
+                "fio": "Петрова А.С."
             }
         ]
     )
-    diff_disciplines: List[DiffItem] = Field(
+    diff_disciplines: List[DisciplineDiffItem] = Field(
         ...,
         description="Различия в дисциплинах",
         example=[
             {
-                "id": 5,
-                "name": "Математика",
-                "status": "unchanged"
+                "title": "Математика"
             },
             {
-                "id": 6,
-                "name": "Новая дисциплина",
-                "status": "added"
+                "title": "Физика"
             }
         ]
     )
-
-
-class CardsSaveSuccessResponse(SuccessWithIdResponse):
-    """
-    Успешный ответ для POST /private/n8n_ui/cards/save
-    Когда карточка сохранена без конфликтов.
-    """
-    new_card_hist_id: int = Field(
-        ...,
-        description="ID новой записи истории карточки"
-    )
-    
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "success": True,
-                "message": "Карточка успешно сохранена",
-                "new_card_hist_id": 150
-            }
-        }
-
-
-class CardsSaveConflictResponse(BaseResponse):
-    """
-    Ответ с конфликтами для POST /private/n8n_ui/cards/save
-    Когда при сохранении карточки возникли конфликты.
-    """
-    success: bool = Field(False, description="Флаг неуспешности операции")
-    conflicts: List[ConflictItem] = Field(
-        ...,
-        description="Список конфликтов при сохранении",
-        example=[
-            {
-                "teacher_id": 3,
-                "teacher_name": "Иванов И.И.",
-                "position": 2,
-                "existing_group": "ИС-21-2",
-                "conflict_type": "teacher_busy"
-            },
-            {
-                "teacher_id": 4,
-                "teacher_name": "Петрова А.С.",
-                "position": 3,
-                "existing_group": "ПР-21-1",
-                "conflict_type": "auditorium_occupied"
-            }
-        ]
-    )
-    description: str = Field(
-        ...,
-        description="Описание проблемы",
-        example="У этого преподавателя уже есть группа на эту пару"
-    )
-
-
-# Union тип для ответа cards/save - используем базовую схему
-class CardsSaveResponse(BaseResponse):
-    """
-    Базовый ответ для POST /private/n8n_ui/cards/save
-    Может содержать либо успех с new_card_hist_id, либо конфликты.
-    """
-    success: bool = Field(..., description="Флаг успешности операции")
-    message: Optional[str] = Field(None, description="Сообщение о результате")
-    new_card_hist_id: Optional[int] = Field(None, description="ID новой записи истории (при успехе)")
-    conflicts: Optional[Dict[str, Any]] = Field(None, description="Информация о конфликтах (при неуспехе)")
-    description: Optional[str] = Field(None, description="Описание проблемы (при неуспехе)")
-    
-    class Config:
-        json_schema_extra = {
-            "examples": [
-                {
-                    "success": True,
-                    "message": "Карточка успешно сохранена",
-                    "new_card_hist_id": 150
-                },
-                {
-                    "success": False,
-                    "conflicts": {
-                        "columns": ["position", "teacher_id", "sched_ver_id"],
-                        "values": [1, 1, 2]
-                    },
-                    "description": "У этого преподавателя уже есть группа на эту пару"
-                }
-            ]
-        }
 
 
 # Экспорт схем
@@ -419,6 +330,5 @@ __all__ = [
     "CardsGetByIdResponse",
     "CardsHistoryResponse",
     "CardsContentResponse",
-    "StdTtableCheckExistsResponse",
-    "CardsSaveResponse"
+    "StdTtableCheckExistsResponse"
 ]

@@ -7,7 +7,6 @@ import sys
 from typing import Optional
 
 from ..config import DocumentationConfig
-from .models import CLIArguments
 from .constants import ExitCodes, ErrorMessages
 from . import handlers
 

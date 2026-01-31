@@ -12,6 +12,10 @@ from core.response_schemas.groups_tab import GroupsGetResponse, GroupsUpdateResp
 from core.utils.anything import Roles
 from core.utils.lite_dependencies import role_require
 from core.utils.logger import log_event
+from core.utils.response_model_utils import (
+    GroupsAddSuccessResponse, GroupsAddConflictResponse,
+    create_groups_add_response, create_response_json
+)
 
 router = APIRouter(prefix='/private/groups', tags=['Groups👥👥👥'])
 
@@ -29,14 +33,21 @@ async def update_groups(body: GroupUpdateSchema, db: PgSqlDep, request: Request,
     return {'success': True, 'message': "Группы сменили статусы", 'active_upd_count': active_upd_count, 'depr_upd_count': depr_upd_count}
 
 
-@router.post('/add', response_model=GroupsAddResponse, dependencies=[Depends(role_require(Roles.methodist))])
+@router.post('/add', responses={
+    200: {"model": GroupsAddSuccessResponse, "description": "Group added successfully"},
+    409: {"model": GroupsAddConflictResponse, "description": "Group already exists"}
+}, dependencies=[Depends(role_require(Roles.methodist))])
 async def add_group(body: GroupAddSchema, db: PgSqlDep, request: Request, _: JWTCookieDep):
     group_id = await db.groups.add(body.group_name, body.building_id)
     if not group_id:
         log_event(f'Не удалось создать группу | user_id: \033[31m{request.state.user_id}\033[0m | group_name: \033[34m{body.group_name}\033[0m',
             request=request, level='WARNING')
-        raise HTTPException(status_code=409, detail='Группа с таким названием в этом здании уже существует')
+        # Use @overload function for type-safe conflict response
+        response = create_groups_add_response(success=False)
+        return create_response_json(response, status_code=409)
 
     log_event(f'Обновили статусы группам | user_id: \033[31m{request.state.user_id}\033[0m | group_name, group_id: \033[34m{body.group_name}, {group_id}\033[0m', request=request)
-    return {'success': True, 'message': 'Группа успешно создана', 'group_id': group_id}
+    # Use @overload function for type-safe success response
+    response = create_groups_add_response(success=True, group_id=group_id)
+    return create_response_json(response, status_code=200)
 

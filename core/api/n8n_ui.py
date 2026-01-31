@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, Union
 
 from fastapi import APIRouter, Depends, Query, Body
 from starlette.requests import Request
@@ -7,8 +7,12 @@ import json
 from core.data.postgre import PgSqlDep
 from core.response_schemas.n8n_ui import (
     TtableCreateResponse, StdTtableGetAllResponse, StdTtableCheckExistsResponse,
-    CurrentTtableGetAllResponse, CardsGetByIdResponse, CardsSaveResponse,
+    CurrentTtableGetAllResponse, CardsGetByIdResponse,
     CardsHistoryResponse, CardsContentResponse, CardsAcceptResponse
+)
+from core.utils.response_model_utils import (
+    CardsSaveResponse, CardsSaveSuccessResponse, CardsSaveConflictResponse,
+    create_cards_save_response, create_response_json
 )
 from core.schemas.cookie_settings_schema import JWTCookieDep
 from core.schemas.n8n_ui.cards_schemas import SaveCardSchema
@@ -65,21 +69,35 @@ async def create_ttable(body: ExtCardStateSchema, db: PgSqlDep, request: Request
     return {'ext_card': [dict(record) for record in records]}
 
 
-@router.post("/cards/save", dependencies=[Depends(role_require(Roles.methodist))], response_model=CardsSaveResponse)
+@router.post("/cards/save", dependencies=[Depends(role_require(Roles.methodist))], responses={
+    200: {"model": Union[CardsSaveSuccessResponse, CardsSaveConflictResponse], "description": "Card save result (success or conflict)"}
+})
 async def save_card(body: SaveCardSchema, db: PgSqlDep, request: Request, _: JWTCookieDep):
     new_card_hist_id = await db.n8n_ui.save_card(body.card_hist_id, body.ttable_id, request.state.user_id, body.lessons)
+    
     if isinstance(new_card_hist_id, int):
         log_event(
             f"Сохранение карточки Успешно! | new_card_hist_id: \033[31m{new_card_hist_id}\033[0m; old_card_hist_id: \033[32m{body.card_hist_id}\033[0m; sched_ver_id: \033[35m{body.ttable_id}\033[0m; user_id: \033[33m{request.state.user_id}\033[0m",
             request=request
         )
-        return {'success': True, 'new_card_hist_id': new_card_hist_id}
+        # Use @overload function for type-safe success response
+        response = create_cards_save_response(
+            success=True,
+            new_card_hist_id=new_card_hist_id
+        )
+        return create_response_json(response, status_code=200)
 
     log_event(
         f"Конфликты при сохранении карточки | conflicts: \033[31m{new_card_hist_id}\033[0m; old_card_hist_id: \033[32m{body.card_hist_id}\033[0m; sched_ver_id: \033[35m{body.ttable_id}\033[0m; user_id: \033[33m{request.state.user_id}\033[0m",
         request=request,  level='WARNING'
     )
-    return {'success': False, 'conflicts': new_card_hist_id, 'description': "У этого преподавателя уже есть группа на эту пару"}
+    # Use @overload function for type-safe conflict response
+    response = create_cards_save_response(
+        success=False,
+        conflicts=new_card_hist_id,
+        description="У этого преподавателя уже есть группа на эту пару"
+    )
+    return create_response_json(response, status_code=200)
 
 
 

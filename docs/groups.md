@@ -19,11 +19,10 @@
 ### Data Schemas
 
 - `GroupsUpdateResponse`
-- `GroupsAddResponse`
-- `GroupsGetResponse`
 - `GroupAddSchema`
-- `GroupPagenSchema`
+- `GroupsGetResponse`
 - `GroupUpdateSchema`
+- `GroupPagenSchema`
 
 ### Usage Examples
 
@@ -40,20 +39,14 @@ curl -X GET -v -H "Authorization: Bearer YOUR_JWT_TOKEN" "https://api.example.co
 {
   "groups": [
     {
-      "building_id": 1,
-      "created_at": "2024-01-01T00:00:00Z",
       "id": 1,
       "is_active": true,
-      "name": "ИС-21-1",
-      "students_count": 25
+      "name": "ИС-21-1"
     },
     {
-      "building_id": 1,
-      "created_at": "2024-01-01T00:00:00Z",
       "id": 2,
       "is_active": true,
-      "name": "ИС-21-2",
-      "students_count": 23
+      "name": "ИС-21-2"
     }
   ]
 }

@@ -175,4 +175,3 @@ ttable_*.json
 docker-compose.dev.yml
 makets/
 test_output/
-response_schemas_analysis.md

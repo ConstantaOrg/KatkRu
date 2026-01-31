@@ -90,7 +90,7 @@ class TimetableQueries:
         return res['id']
 
     async def base_groups(self, building_id: int):
-        query = 'SELECT id FROM groups WHERE is_active = true AND building_id = $1'
+        query = 'SELECT id, name FROM groups WHERE is_active = true AND building_id = $1'
         res = await self.conn.fetch(query, building_id)
         return res
 
@@ -128,13 +128,17 @@ class TimetableQueries:
         await self.conn.execute('BEGIN ISOLATION LEVEL REPEATABLE READ')
         building_id = await self.conn.fetchval('SELECT building_id FROM ttable_versions WHERE id = $1', sched_ver_id)
 
-        base_groups = {rec['id'] for rec in (await self.base_groups(building_id))}
+        base_groups_data = await self.base_groups(building_id)
+        base_groups_ids = {rec['id'] for rec in base_groups_data}
+        base_groups_names = {rec['id']: rec['name'] for rec in base_groups_data}
         ttable_ver_groups = {rec['group_id'] for rec in (await self.ttable_ver_groups(sched_ver_id))}
 
         'Не все группы в версии расписания "готовы"'
-        if remains_groups:=(base_groups - ttable_ver_groups):
+        if remains_groups_ids:=(base_groups_ids - ttable_ver_groups):
             await self.conn.execute('ROLLBACK')
-            return 409, {"message": f"Недостаточно групп в Расписании", "needed_groups": list(remains_groups), "ttable_id": sched_ver_id}
+            # Convert group IDs to group names for the response
+            needed_group_names = [base_groups_names[group_id] for group_id in remains_groups_ids]
+            return 409, {"message": f"Недостаточно групп в Расписании", "needed_groups": needed_group_names, "ttable_id": sched_ver_id}
 
         res_switch = await self.pre_commit_version(sched_ver_id)
         await self.conn.execute('COMMIT')

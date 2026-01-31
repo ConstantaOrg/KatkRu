@@ -10,7 +10,10 @@ from core.schemas.n8n_ui.teachers_schema import TeachersAddSchema, TeachersUpdat
 from core.schemas.schemas2depends import TeachersPagenSchema
 from core.utils.anything import Roles
 from core.utils.lite_dependencies import role_require
-from core.utils.logger import log_event
+from core.utils.response_model_utils import (
+    TeachersAddSuccessResponse, TeachersAddConflictResponse,
+    create_teachers_add_response, create_response_json
+)
 
 router = APIRouter(prefix='/private/teachers', tags=['Teachers👨‍🏫'])
 
@@ -28,14 +31,21 @@ async def update_teachers(body: TeachersUpdateSchema, db: PgSqlDep, request: Req
     return {'success': True, 'message': "Учителя сменили статусы", 'active_upd_count': active_upd_count, 'depr_upd_count': depr_upd_count}
 
 
-@router.post('/add', dependencies=[Depends(role_require(Roles.methodist))], response_model=TeachersAddResponse)
+@router.post('/add', responses={
+    200: {"model": TeachersAddSuccessResponse, "description": "Teacher added successfully"},
+    409: {"model": TeachersAddConflictResponse, "description": "Teacher already exists"}
+}, dependencies=[Depends(role_require(Roles.methodist))])
 async def add_teacher(body: TeachersAddSchema, db: PgSqlDep, request: Request, _: JWTCookieDep):
     teacher_id = await db.teachers.add(body.fio)
     if not teacher_id:
         log_event(f'Не удалось добавить учителя | user_id: \033[31m{request.state.user_id}\033[0m | fio: \033[34m{body.fio}\033[0m',
             request=request, level='WARNING')
-        raise HTTPException(status_code=409, detail='Такой учитель уже добавлен')
+        # Use @overload function for type-safe conflict response
+        response = create_teachers_add_response(success=False)
+        return create_response_json(response, status_code=409)
 
     log_event(f'Обновили статусы группам | user_id: \033[31m{request.state.user_id}\033[0m | fio, teacher_id: \033[34m{body.fio}, {teacher_id}\033[0m', request=request)
-    return {'success': True, 'teacher_id': teacher_id}
+    # Use @overload function for type-safe success response
+    response = create_teachers_add_response(success=True, teacher_id=teacher_id)
+    return create_response_json(response, status_code=200)
 

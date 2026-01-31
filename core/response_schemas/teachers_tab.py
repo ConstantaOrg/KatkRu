@@ -21,16 +21,12 @@ class TeachersGetResponse(BaseResponse):
             {
                 "id": 1,
                 "fio": "Иванов Иван Иванович",
-                "is_active": True,
-                "created_at": "2024-01-01T00:00:00Z",
-                "disciplines_count": 3
+                "is_active": True
             },
             {
                 "id": 2,
                 "fio": "Петрова Анна Сергеевна",
-                "is_active": True,
-                "created_at": "2024-01-01T00:00:00Z",
-                "disciplines_count": 2
+                "is_active": True
             }
         ]
     )

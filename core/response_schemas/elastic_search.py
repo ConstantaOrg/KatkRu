@@ -1,6 +1,6 @@
 """
 Response схемы для elastic search endpoints.
-Соответствует core/api/elastic_search.py
+Соответствует core/api/api_elastic_search.py
 """
 
 from typing import List, Dict, Any, Tuple

@@ -8,21 +8,6 @@ from pydantic import Field
 from . import SuccessResponse
 
 
-class TtableVersionsPreCommitResponse(SuccessResponse):
-    """
-    Ответ для PUT /private/ttable/versions/pre-commit
-    Результат предварительного подтверждения версии расписания.
-    """
-    
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "success": True,
-                "message": "Расписание подтверждено и активно!"
-            }
-        }
-
-
 class TtableVersionsCommitResponse(SuccessResponse):
     """
     Ответ для PUT /private/ttable/versions/commit
@@ -40,6 +25,5 @@ class TtableVersionsCommitResponse(SuccessResponse):
 
 # Экспорт схем
 __all__ = [
-    "TtableVersionsPreCommitResponse",
     "TtableVersionsCommitResponse"
 ]

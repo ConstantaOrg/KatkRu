@@ -3,6 +3,8 @@ from pathlib import Path
 from tempfile import NamedTemporaryFile
 from docx import Document
 
+from tests.utils.api_response_validator import APIResponseValidator, ValidationRule, EndpointValidator
+
 BASE_DIR = Path(__file__).resolve().parents[2]
 DOCX_PATH = BASE_DIR / "ttable_25-26.docx"
 
@@ -34,33 +36,74 @@ async def test_healthcheck(client):
 
 @pytest.mark.asyncio
 async def test_cards_history(client, seed_info):
+    """Test cards history endpoint validates actual data structure."""
+    # Create validator for history response
+    validator = APIResponseValidator(strict_mode=False)
+    validator.add_rule(ValidationRule("history", list, required=True))
+    
     resp = await client.get(
         "/api/v1/private/n8n_ui/cards/history",
         params={"sched_ver_id": seed_info["ttable_id"], "group_id": seed_info["group_id"]},
     )
+    
+    # Validate response structure
     assert resp.status_code == 200
-    history = resp.json()["history"]
-    assert len(history) == 1
+    data = resp.json()
+    
+    validation_result = validator.validate_response(data)
+    assert validation_result.is_valid, f"Validation errors: {validation_result.errors}"
+    
+    # Validate business logic: history should contain expected data
+    history = data["history"]
+    assert len(history) == 1, "Expected exactly one history record"
+    
     row = history[0]
-    assert row["status_id"] == seed_info["cards_statuses"]["edited"]
-    assert row["is_current"] is True
-    assert row["user_name"] == "Test User"
+    # Validate essential fields exist with correct business logic
+    assert "status_id" in row, "History record should have status_id"
+    assert "is_current" in row, "History record should have is_current"
+    assert "user_name" in row, "History record should have user_name"
+    
+    # Validate business logic values
+    assert row["status_id"] == seed_info["cards_statuses"]["edited"], "Status should be 'edited'"
+    assert row["is_current"] is True, "Record should be current"
+    assert row["user_name"] == "Test User", "User name should match expected value"
 
 
 @pytest.mark.asyncio
 async def test_cards_content(client, seed_info):
+    """Test cards content endpoint validates actual data structure."""
+    # Create validator for content response
+    validator = APIResponseValidator(strict_mode=False)
+    validator.add_rule(ValidationRule("card_content", list, required=True))
+    
     resp = await client.get(
         "/api/v1/private/n8n_ui/cards/content",
         params={"card_hist_id": seed_info["hist_id"]},
     )
+    
+    # Validate response structure
     assert resp.status_code == 200
-    content = resp.json()["card_content"]
-    assert len(content) == 1
+    data = resp.json()
+    
+    validation_result = validator.validate_response(data)
+    assert validation_result.is_valid, f"Validation errors: {validation_result.errors}"
+    
+    # Validate business logic: content should contain expected data
+    content = data["card_content"]
+    assert len(content) == 1, "Expected exactly one content record"
+    
     row = content[0]
-    assert row["position"] == 1
-    assert row["aud"] == "101"
-    assert row["discipline_title"] == "Math"
-    assert row["teacher_name"] == "Иванов И.И."
+    # Validate essential fields exist
+    assert "position" in row, "Content record should have position"
+    assert "aud" in row, "Content record should have aud"
+    assert "discipline_title" in row, "Content record should have discipline_title"
+    assert "teacher_name" in row, "Content record should have teacher_name"
+    
+    # Validate business logic values
+    assert row["position"] == 1, "Position should be 1"
+    assert row["aud"] == "101", "Aud should be '101'"
+    assert row["discipline_title"] == "Math", "Discipline should be 'Math'"
+    assert row["teacher_name"] == "Иванов И.И.", "Teacher name should match expected value"
 
 
 @pytest.mark.asyncio
@@ -116,6 +159,11 @@ async def test_timetable_standard_import(client, pg_pool, seed_info):
 
 @pytest.mark.asyncio
 async def test_std_ttable_get_all_creates_snapshot(client, seed_info, pg_pool):
+    """Test std_ttable get_all endpoint validates actual data processing logic."""
+    # Create validator for lessons response
+    validator = APIResponseValidator(strict_mode=False)
+    validator.add_rule(ValidationRule("lessons", list, required=True))
+    
     async with pg_pool.acquire() as conn:
         new_sched_id = await conn.fetchval(
             """
@@ -134,37 +182,80 @@ async def test_std_ttable_get_all_creates_snapshot(client, seed_info, pg_pool):
         "ttable_id": new_sched_id,
     }
     resp = await client.post("/api/v1/private/n8n_ui/std_ttable/get_all", json=body)
+    
+    # Validate response structure
     assert resp.status_code == 200
-    lessons = resp.json()["lessons"]
-    assert len(lessons) == 1
+    data = resp.json()
+    
+    validation_result = validator.validate_response(data)
+    assert validation_result.is_valid, f"Validation errors: {validation_result.errors}"
+    
+    # Validate business logic: lessons should contain expected data
+    lessons = data["lessons"]
+    assert len(lessons) == 1, "Expected exactly one lesson record"
+    
     item = lessons[0]
-    assert item["status_card"] == seed_info["cards_statuses"]["draft"]
-    assert item["position"] == 1
-    assert item["title"] == "Math"
+    # Validate essential fields exist
+    assert "status_card" in item, "Lesson should have status_card"
+    assert "position" in item, "Lesson should have position"
+    assert "title" in item, "Lesson should have title"
+    
+    # Validate business logic values
+    assert item["status_card"] == seed_info["cards_statuses"]["draft"], "Status should be 'draft'"
+    assert item["position"] == 1, "Position should be 1"
+    assert item["title"] == "Math", "Title should be 'Math'"
 
+    # Validate actual database changes (business logic verification)
     async with pg_pool.acquire() as conn:
         current = await conn.fetch("SELECT id, is_current FROM cards_states_history WHERE sched_ver_id=$1", new_sched_id)
-    assert len(current) == 1
-    assert current[0]["is_current"] is True
+    
+    assert len(current) == 1, "Expected exactly one card state history record"
+    assert current[0]["is_current"] is True, "Card state should be current"
 
 
 @pytest.mark.asyncio
 async def test_current_ttable_get_all_returns_active_cards(client, seed_info):
+    """Test current_ttable get_all endpoint validates actual data processing logic."""
+    # Create validator for lessons response
+    validator = APIResponseValidator(strict_mode=False)
+    validator.add_rule(ValidationRule("lessons", list, required=True))
+    
     resp = await client.post(
         "/api/v1/private/n8n_ui/current_ttable/get_all",
         json={"ttable_id": seed_info["ttable_id"]},
     )
+    
+    # Validate response structure
     assert resp.status_code == 200
-    lessons = resp.json()["lessons"]
-    assert len(lessons) == 1
+    data = resp.json()
+    
+    validation_result = validator.validate_response(data)
+    assert validation_result.is_valid, f"Validation errors: {validation_result.errors}"
+    
+    # Validate business logic: lessons should contain expected data
+    lessons = data["lessons"]
+    assert len(lessons) == 1, "Expected exactly one lesson record"
+    
     row = lessons[0]
-    assert row["card_hist_id"] == seed_info["hist_id"]
-    assert row["status_card"] == seed_info["cards_statuses"]["edited"]
-    assert row["title"] == "Math"
+    # Validate essential fields exist
+    assert "card_hist_id" in row, "Lesson should have card_hist_id"
+    assert "status_card" in row, "Lesson should have status_card"
+    assert "title" in row, "Lesson should have title"
+    
+    # Validate business logic values
+    assert row["card_hist_id"] == seed_info["hist_id"], "Card hist ID should match expected"
+    assert row["status_card"] == seed_info["cards_statuses"]["edited"], "Status should be 'edited'"
+    assert row["title"] == "Math", "Title should be 'Math'"
 
 
 @pytest.mark.asyncio
 async def test_cards_save_creates_new_version(client, seed_info, pg_pool):
+    """Test cards save endpoint validates actual data processing logic."""
+    # Create validator for cards save endpoint
+    validator = APIResponseValidator(strict_mode=False)
+    validator.add_rule(ValidationRule("success", bool, required=True))
+    validator.add_rule(ValidationRule("new_card_hist_id", int, required=False))
+    
     payload = {
         "card_hist_id": seed_info["hist_id"],
         "ttable_id": seed_info["ttable_id"],
@@ -179,13 +270,25 @@ async def test_cards_save_creates_new_version(client, seed_info, pg_pool):
         ],
     }
     resp = await client.post("/api/v1/private/n8n_ui/cards/save", json=payload)
+    
+    # Validate response using independent validator
     assert resp.status_code == 200
     data = resp.json()
-    assert data["success"] is True
+    
+    # Use validator to check response structure
+    validation_result = validator.validate_response(data)
+    assert validation_result.is_valid, f"Validation errors: {validation_result.errors}"
+    
+    # Validate business logic: success should be True for valid save
+    assert data["success"] is True, "Expected successful save operation"
+    
+    # Validate business logic: new_card_hist_id should be present and different
+    assert "new_card_hist_id" in data, "Expected new_card_hist_id in successful response"
     new_hist_id = data["new_card_hist_id"]
-    assert isinstance(new_hist_id, int)
-    assert new_hist_id != seed_info["hist_id"]
+    assert isinstance(new_hist_id, int), "new_card_hist_id should be an integer"
+    assert new_hist_id != seed_info["hist_id"], "new_card_hist_id should be different from original"
 
+    # Validate actual database changes (business logic verification)
     async with pg_pool.acquire() as conn:
         rows = await conn.fetch(
             "SELECT csd.card_hist_id, csh.is_current, csd.aud "
@@ -194,12 +297,23 @@ async def test_cards_save_creates_new_version(client, seed_info, pg_pool):
             "WHERE csh.sched_ver_id=$1",
             seed_info["ttable_id"],
         )
-    assert any(r["card_hist_id"] == new_hist_id for r in rows)
-    assert any(r["aud"] == "202" and r["is_current"] for r in rows)
+    
+    # Verify business logic: new record exists and is current
+    new_record_exists = any(r["card_hist_id"] == new_hist_id for r in rows)
+    assert new_record_exists, "New card history record should exist in database"
+    
+    correct_aud_and_current = any(r["aud"] == "202" and r["is_current"] for r in rows)
+    assert correct_aud_and_current, "New record should have correct aud and be current"
 
 
 @pytest.mark.asyncio
 async def test_cards_save_conflict_due_to_unique_index(client, seed_info):
+    """Test cards save endpoint handles conflicts correctly."""
+    # Create validator for conflict response
+    validator = APIResponseValidator(strict_mode=False)
+    validator.add_rule(ValidationRule("success", bool, required=True))
+    validator.add_rule(ValidationRule("conflicts", dict, required=False))
+    
     payload = {
         "card_hist_id": seed_info["hist_id"],
         "ttable_id": seed_info["ttable_id"],
@@ -214,14 +328,29 @@ async def test_cards_save_conflict_due_to_unique_index(client, seed_info):
         ],
     }
     resp = await client.post("/api/v1/private/n8n_ui/cards/save", json=payload)
+    
+    # Validate response structure
     assert resp.status_code == 200
     data = resp.json()
-    assert data["success"] is False
-    assert "conflicts" in data
+    
+    validation_result = validator.validate_response(data)
+    assert validation_result.is_valid, f"Validation errors: {validation_result.errors}"
+    
+    # Validate business logic: conflict should result in success=False
+    assert data["success"] is False, "Expected conflict to result in success=False"
+    
+    # Validate business logic: conflicts should be present when success=False
+    assert "conflicts" in data, "Expected conflicts field when save fails due to conflict"
 
 
 @pytest.mark.asyncio
 async def test_cards_save_conflict_even_with_force(client, seed_info):
+    """Test cards save endpoint handles force flag correctly."""
+    # Create validator for force save response
+    validator = APIResponseValidator(strict_mode=False)
+    validator.add_rule(ValidationRule("success", bool, required=True))
+    validator.add_rule(ValidationRule("new_card_hist_id", int, required=False))
+    
     payload = {
         "card_hist_id": seed_info["hist_id"],
         "ttable_id": seed_info["ttable_id"],
@@ -236,8 +365,18 @@ async def test_cards_save_conflict_even_with_force(client, seed_info):
         ],
     }
     resp = await client.post("/api/v1/private/n8n_ui/cards/save", json=payload)
+    
+    # Validate response structure
     assert resp.status_code == 200
     data = resp.json()
-    assert data["success"] is True
-    assert isinstance(data.get("new_card_hist_id"), int)
+    
+    validation_result = validator.validate_response(data)
+    assert validation_result.is_valid, f"Validation errors: {validation_result.errors}"
+    
+    # Validate business logic: force flag should allow save despite conflict
+    assert data["success"] is True, "Expected force flag to allow save despite conflict"
+    
+    # Validate business logic: new_card_hist_id should be present for successful save
+    assert "new_card_hist_id" in data, "Expected new_card_hist_id for successful force save"
+    assert isinstance(data.get("new_card_hist_id"), int), "new_card_hist_id should be integer"
 

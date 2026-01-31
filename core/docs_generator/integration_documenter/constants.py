@@ -18,7 +18,7 @@ class ConfigFiles:
                 'core/config_dir/config.py',
                 'core/data/postgre.py',
                 'core/data/redis_storage.py',
-                'core/api/elastic_search.py'
+                'core/api/api_elastic_search.py'
             ]
 
 
@@ -190,7 +190,7 @@ Elasticsearch подключение настраивается через пе�
 - ELASTICSEARCH_INDEX_PREFIX: префикс для индексов
 
 Используется для полнотекстового поиска по данным системы.
-Конфигурация клиента в core/api/elastic_search.py.
+Конфигурация клиента в core/api/api_elastic_search.py.
                 """.strip()
             }
 

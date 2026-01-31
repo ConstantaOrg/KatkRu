@@ -10,7 +10,10 @@ from core.schemas.n8n_ui.disciplines_schema import DisciplineUpdateSchema, Disci
 from core.schemas.schemas2depends import DisciplinesPagenSchema
 from core.utils.anything import Roles
 from core.utils.lite_dependencies import role_require
-from core.utils.logger import log_event
+from core.utils.response_model_utils import (
+    DisciplinesAddSuccessResponse, DisciplinesAddConflictResponse,
+    create_disciplines_add_response, create_response_json
+)
 
 router = APIRouter(prefix='/private/disciplines', tags=['Disciplines📚'])
 
@@ -28,14 +31,21 @@ async def update_disciplines(body: DisciplineUpdateSchema, db: PgSqlDep, request
     return {'success': True, 'message': "Дисциплины сменили статусы", 'active_upd_count': active_upd_count, 'depr_upd_count': depr_upd_count}
 
 
-@router.post('/add', dependencies=[Depends(role_require(Roles.methodist))], response_model=DisciplinesAddResponse)
+@router.post('/add', responses={
+    200: {"model": DisciplinesAddSuccessResponse, "description": "Discipline added successfully"},
+    409: {"model": DisciplinesAddConflictResponse, "description": "Discipline already exists"}
+}, dependencies=[Depends(role_require(Roles.methodist))])
 async def add_discipline(body: DisciplineAddSchema, db: PgSqlDep, request: Request, _: JWTCookieDep):
-    discipline_id = await db.disciplines.add(body.fio)
+    discipline_id = await db.disciplines.add(body.title)
     if not discipline_id:
         log_event(f'Не удалось добавить предмет | user_id: \033[31m{request.state.user_id}\033[0m | title: \033[34m{body.title}\033[0m',
             request=request, level='WARNING')
-        raise HTTPException(status_code=409, detail='Такой предмет уже есть')
+        # Use @overload function for type-safe conflict response
+        response = create_disciplines_add_response(success=False)
+        return create_response_json(response, status_code=409)
 
-    log_event(f'Обновили статусы группам | user_id: \033[31m{request.state.user_id}\033[0m | title, discipline_id: \033[34m{body.title}, {discipline_id}\033[0m', request=request)
-    return {'success': True, 'discipline_id': discipline_id}
+    log_event(f'Добавили дисциплину | user_id: \033[31m{request.state.user_id}\033[0m | title, discipline_id: \033[34m{body.title}, {discipline_id}\033[0m', request=request)
+    # Use @overload function for type-safe success response
+    response = create_disciplines_add_response(success=True, discipline_id=discipline_id)
+    return create_response_json(response, status_code=200)
 

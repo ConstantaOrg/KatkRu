@@ -25,21 +25,20 @@
 
 ### Data Schemas
 
-- `CardsContentResponse`
-- `CardsAcceptResponse`
-- `StdTtableCheckExistsResponse`
-- `ExtCardStateSchema`
-- `SaveCardSchema`
-- `CardsSaveResponse`
-- `CardsHistoryResponse`
-- `StdTtableGetAllResponse`
-- `SnapshotTtableSchema`
-- `CurrentTtableGetAllResponse`
-- `TtableCreateResponse`
-- `StdTtableLoadSchema`
-- `CardsGetByIdResponse`
 - `StdTtableSchema`
+- `StdTtableCheckExistsResponse`
 - `CreateTtableSchema`
+- `SaveCardSchema`
+- `CardsContentResponse`
+- `CardsGetByIdResponse`
+- `ExtCardStateSchema`
+- `CardsHistoryResponse`
+- `CardsAcceptResponse`
+- `SnapshotTtableSchema`
+- `StdTtableLoadSchema`
+- `CurrentTtableGetAllResponse`
+- `StdTtableGetAllResponse`
+- `TtableCreateResponse`
 
 ### Usage Examples
 

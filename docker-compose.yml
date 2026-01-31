@@ -82,6 +82,10 @@ services:
         condition: service_healthy
       es01:
         condition: service_healthy
+      kibana01:
+        condition: service_healthy
+      redis:
+        condition: service_started
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8000/api/v1/healthcheck || exit 1"]
       interval: 5s

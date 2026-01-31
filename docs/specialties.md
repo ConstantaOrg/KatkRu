@@ -16,9 +16,9 @@
 
 ### Data Schemas
 
-- `SpecialtiesAllResponse`
-- `SpecsPaginSchema`
 - `SpecialtyGetResponse`
+- `SpecsPaginSchema`
+- `SpecialtiesAllResponse`
 
 ### Usage Examples
 

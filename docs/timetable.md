@@ -21,12 +21,11 @@
 
 ### Data Schemas
 
-- `TtableVersionsCommitResponse`
-- `TimetableImportResponse`
-- `ScheduleFilterSchema`
-- `TimetableGetResponse`
-- `TtableVersionsPreCommitResponse`
 - `CommitTtableVersionSchema`
+- `ScheduleFilterSchema`
+- `TimetableImportResponse`
+- `TtableVersionsCommitResponse`
+- `TimetableGetResponse`
 - `PreAcceptTimetableSchema`
 
 ### Usage Examples

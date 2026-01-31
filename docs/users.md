@@ -20,9 +20,9 @@
 
 ### Data Schemas
 
+- `UpdatePasswSchema`
 - `UserLogInSchema`
 - `UserRegSchema`
-- `UpdatePasswSchema`
 
 ### Usage Examples
 

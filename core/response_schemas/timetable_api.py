@@ -44,26 +44,16 @@ class TimetableGetResponse(BaseResponse):
         description="Расписание занятий",
         example=[
             {
-                "id": 1,
-                "group_name": "ИС-21-1",
-                "discipline": "Математика",
-                "teacher": "Иванов И.И.",
-                "auditorium": "101",
-                "date": "2024-01-15",
-                "time_start": "08:30",
-                "time_end": "10:00",
-                "lesson_type": "Лекция"
+                "position": 1,
+                "title": "Математика",
+                "fio": "Иванов И.И.",
+                "aud": "101"
             },
             {
-                "id": 2,
-                "group_name": "ИС-21-1", 
-                "discipline": "Физика",
-                "teacher": "Петрова А.С.",
-                "auditorium": "205",
-                "date": "2024-01-15",
-                "time_start": "10:15",
-                "time_end": "11:45",
-                "lesson_type": "Практика"
+                "position": 2,
+                "title": "Физика",
+                "fio": "Петрова А.С.",
+                "aud": "205"
             }
         ]
     )

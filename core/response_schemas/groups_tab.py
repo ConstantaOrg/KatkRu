@@ -21,18 +21,12 @@ class GroupsGetResponse(BaseResponse):
             {
                 "id": 1,
                 "name": "ИС-21-1",
-                "building_id": 1,
-                "is_active": True,
-                "created_at": "2024-01-01T00:00:00Z",
-                "students_count": 25
+                "is_active": True
             },
             {
                 "id": 2, 
                 "name": "ИС-21-2",
-                "building_id": 1,
-                "is_active": True,
-                "created_at": "2024-01-01T00:00:00Z",
-                "students_count": 23
+                "is_active": True
             }
         ]
     )
