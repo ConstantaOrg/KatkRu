@@ -159,3 +159,51 @@ class GroupIndex:
         return query
 
 
+class LogIndex:
+    aliases = {}
+    settings = {
+        "number_of_shards": 1,
+        "number_of_replicas": 0,
+        "refresh_interval": "30s",
+        "index.mapping.total_fields.limit": 50
+    }
+    mappings = {
+        "properties": {
+            "@timestamp": {
+                "type": "date"
+            },
+            "level": {
+                "type": "keyword",
+                "index": True
+            },
+            "message": {
+                "type": "text",
+                "index": False,
+                "store": True
+            },
+            "service": {
+                "type": "keyword",
+                "index": True
+            },
+            "method": {
+                "type": "keyword",
+                "index": False
+            },
+            "url": {
+                "type": "keyword",
+                "index": False
+            },
+            "function": {
+                "type": "keyword",
+                "index": False
+            },
+            "line": {
+                "type": "integer",
+                "index": False
+            },
+            "file": {
+                "type": "keyword",
+                "index": False
+            }
+        }
+    }

@@ -5,7 +5,7 @@ from starlette.requests import Request
 
 from core.api.elastic_search.sub_handlers import fill_group_index, fill_spec_index
 from core.config_dir.config import ElasticDep, env
-from core.config_dir.index_settings import SpecIndex, GroupIndex
+from core.config_dir.index_settings import SpecIndex, GroupIndex, LogIndex
 from core.data.postgre import PgSql
 from core.response_schemas.elastic_search import (
     AutocompleteSearchResponse, DeepSearchResponse
@@ -27,6 +27,7 @@ async def init_elasticsearch_index(index_names: list[str], db: Pool, aioes: Asyn
 
     "Индексы для инициализации"
     app_indices = [
+        [index_names[0], None, LogIndex],        # Индекс, флаг для индексации, Класс настроек индекса
         [env.search_index_spec, True, SpecIndex],    # Индекс, флаг для индексации, Класс настроек индекса
         [env.search_index_group, True, GroupIndex],  # Индекс, флаг для индексации, Класс настроек индекса
     ]
@@ -54,7 +55,7 @@ async def init_elasticsearch_index(index_names: list[str], db: Pool, aioes: Asyn
     group_status = await fill_group_index(records_groups, index_names[1], aioes)
     log_level = 'WARNING' if spec_status and group_status else 'CRITICAL'
 
-    log_event(f'Индексация и создание "{index_names}" | \033[34mspec_status: {spec_status}; group_status: {group_status}\033[0m', level=log_level)
+    log_event(f'Индексация и создание "{index_names}" | \033[34mspec_status: {spec_status}; group_status: {group_status}; app-logs-index: ?\033[0m', level=log_level)
     return {'success': spec_status and group_status, 'message': f'Индексы {index_names} подняты, документы вставлены'}
 
 

@@ -25,7 +25,11 @@ async def lifespan(web_app):
 
     "Иниц. индекса в Elasticsearch"
     if env.es_init:
-        await init_elasticsearch_index(["specs_index", "group_index"], web_app.state.pg_pool, web_app.state.es_client)
+        await init_elasticsearch_index(
+            ["app-logs-index-1", "specs-index", "group-index"],
+            web_app.state.pg_pool,
+            web_app.state.es_client
+        )
     try:
         yield
     finally:

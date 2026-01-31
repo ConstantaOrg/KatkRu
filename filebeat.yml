@@ -1,0 +1,37 @@
+setup.ilm.enabled: false
+setup.template.enabled: true
+setup.template.name: "app-logs"
+setup.template.pattern: "app-logs-*"
+
+setup.kibana:
+  host: ${KIBANA_HOST}
+
+filebeat.inputs:
+- type: filestream
+  id: app-logs-service
+  enabled: true
+  paths:
+    - /app/logs/*.log
+  fields:
+    service: "katkru-filebeat"
+  fields_under_root: true
+  multiline.pattern: '^\d{4}-\d{2}-\d{2}'
+  multiline.negate: true
+  multiline.match: after
+
+processors:
+  - add_docker_metadata:
+      host: "unix:///var/run/docker.sock"
+  - add_host_metadata: ~
+
+output.elasticsearch:
+  hosts: ["${ELASTICSEARCH_HOSTS}"]
+  index: "app-logs-%{+yyyy.MM.dd}"
+  template.settings:
+    index.number_of_shards: 1
+    index.number_of_replicas: 0
+    index.refresh_interval: "30s"
+
+logging.level: info
+logging.to_files: false
+logging.to_stderr: true

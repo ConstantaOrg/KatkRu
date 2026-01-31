@@ -55,6 +55,50 @@ services:
     networks:
       net_con:
 
+  filebeat:
+    image: docker.elastic.co/beats/filebeat:${ELASTIC_VERSION}
+    container_name: fb_monitor
+    command: filebeat -e --strict.perms=false
+    user: root
+    environment:
+      - ELASTICSEARCH_HOSTS=http://es01:9200
+      - KIBANA_HOST=http://kibana01:5601
+    volumes:
+      - ./filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - fb_data01:/usr/share/filebeat/data
+      - ./logs:/app/logs:ro
+#    healthcheck:
+#      test: ["CMD-SHELL", "filebeat", "test", "config"]
+#      interval: 10s
+#      timeout: 8s
+#      retries: 5
+    depends_on:
+      es01:
+        condition: service_healthy
+    networks:
+      - net_con
+
+  grafana:
+    image: grafana/grafana:10.2.0
+    container_name: grafana
+    depends_on:
+      es01:
+        condition: service_healthy
+      filebeat:
+        condition: service_started
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSW}
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    ports:
+      - "127.0.0.1:3000:3000"
+    networks:
+      net_con:
+
   pg_db:
     container_name: pg_db
     image: postgres:16
@@ -107,6 +151,10 @@ volumes:
   pg_data:
     driver: local
   redis_data:
+    driver: local
+  fb_data01:
+    driver: local
+  grafana_data:
     driver: local
 
 networks:
