@@ -8,7 +8,7 @@ services:
     environment:
       - REDIS_PASSWORD=${REDIS_PASSWORD}
     networks:
-      - net_con
+      net_con:
 
   es01:
     container_name: es01
@@ -29,6 +29,9 @@ services:
     volumes:
       - esdata01:/usr/share/elasticsearch/data
     mem_limit: 16g
+    # внешний | внутренний
+    ports:
+      - "9200:9200"
     networks:
       net_con:
 
@@ -50,6 +53,7 @@ services:
       retries: 15
     volumes:
       - kibana01:/usr/share/kibana/data
+    # внешний | внутренний
     ports:
       - '127.0.0.1:5601:5601'
     networks:
@@ -69,16 +73,16 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - fb_data01:/usr/share/filebeat/data
       - ./logs:/app/logs:ro
-#    healthcheck:
-#      test: ["CMD-SHELL", "filebeat", "test", "config"]
-#      interval: 10s
-#      timeout: 8s
-#      retries: 5
+    healthcheck:
+      test: ["CMD-SHELL", "filebeat", "test", "config"]
+      interval: 10s
+      timeout: 8s
+      retries: 5
     depends_on:
       es01:
         condition: service_healthy
     networks:
-      - net_con
+      net_con:
 
   grafana:
     image: grafana/grafana:10.2.0
@@ -93,7 +97,8 @@ services:
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSW}
     volumes:
       - grafana_data:/var/lib/grafana
-      - ./grafana/provisioning:/etc/grafana/provisioning
+#      - ./grafana/provisioning:/etc/grafana/provisioning
+    # внешний | внутренний
     ports:
       - "127.0.0.1:3000:3000"
     networks:
@@ -137,8 +142,9 @@ services:
       retries: 10
     secrets:
       - .env.prod
+    # внешний | внутренний
     ports:
-      - '8000:8000'
+      - '8100:8000'
     networks:
       net_con:
 

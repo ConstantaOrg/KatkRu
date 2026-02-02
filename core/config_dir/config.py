@@ -75,6 +75,7 @@ class Settings(BaseSettings):
 
     search_index_spec: str
     search_index_group: str
+    log_index: str
 
     app_mode: AppMode
     post_processing_responses: bool # Использовать респонс модели или нет. Влияет на производительность ценой читаемости

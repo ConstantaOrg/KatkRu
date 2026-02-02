@@ -6,32 +6,131 @@ setup.template.pattern: "app-logs-*"
 setup.kibana:
   host: ${KIBANA_HOST}
 
+# Основной input для логов приложения
 filebeat.inputs:
 - type: filestream
   id: app-logs-service
   enabled: true
   paths:
-    - /app/logs/*.log
+    - /app/logs/**/*.log  # Рекурсивный поиск в подпапках
   fields:
-    service: "katkru-filebeat"
+    service: "fastapi-app"
+    environment: "production"
   fields_under_root: true
+  
+  # Многострочные логи
   multiline.pattern: '^\d{4}-\d{2}-\d{2}'
   multiline.negate: true
   multiline.match: after
+  multiline.max_lines: 500
+  
+  # Производительность
+  harvester_buffer_size: 16384 # 1.5MB
+  max_bytes: 10485760  # 10MB max file size
+  
+  # Исключения
+  exclude_lines: ['^DEBUG', '^$']  # Пропускаем DEBUG и пустые строки
+  include_lines: ['^20\d{2}-']     # Только строки с датой
+  
+  # Закрытие файлов
+  close_inactive: 5m
+  close_removed: true
+  close_renamed: false
+  clean_inactive: 24h
 
+# Процессоры для обработки данных
 processors:
+  # Добавляем метаданные Docker (если нужно)
   - add_docker_metadata:
       host: "unix:///var/run/docker.sock"
-  - add_host_metadata: ~
+      match_fields: ["container.id"]
+      
+  # Минимальные метаданные хоста
+  - add_host_metadata:
+      when.not.contains.tags: forwarded
+      netinfo.enabled: false
+      cache.ttl: 5m
+      geo.enabled: false
+      
+  # Парсим структуру лога
+  - dissect:
+      tokenizer: "%{timestamp} - %{level} - %{message} - %{method} - %{location} - %{func} - %{line} - %{url} - %{ip}"
+      field: "message"
+      target_prefix: ""
+      ignore_failure: true
+      
+  # Преобразуем timestamp
+  - timestamp:
+      field: timestamp
+      layouts:
+        - '2006-01-02 15:04:05,000'
+      test:
+        - '2024-01-31 15:30:45,123'
+      ignore_failure: true
+      
+  # Удаляем ненужные поля для экономии места
+  - drop_fields:
+      fields: [
+        "agent.ephemeral_id", "agent.id", "agent.name", "agent.type", "agent.version",
+        "ecs.version", "host.architecture", "host.containerized", "host.hostname", 
+        "host.id", "host.mac", "host.name", "host.os", "input.type", "log.file", 
+        "log.offset", "container.id", "container.image", "container.name"
+      ]
+      ignore_missing: true
+      
+  # Переименовываем поля
+  - rename:
+      fields:
+        - from: "message"
+          to: "original_message"
+      ignore_missing: true
+      
+  # Добавляем теги для фильтрации
+  - add_tags:
+      tags: ["fastapi", "application"]
+      when.contains:
+        level: "ERROR"
+        
+  # Условная обработка для разных уровней
+  - drop_event:
+      when.and:
+        - contains:
+            level: "DEBUG"
+        - not.contains:
+            message: "CRITICAL"
 
+# Вывод в Elasticsearch
 output.elasticsearch:
   hosts: ["${ELASTICSEARCH_HOSTS}"]
-  index: "app-logs-%{+yyyy.MM.dd}"
-  template.settings:
-    index.number_of_shards: 1
-    index.number_of_replicas: 0
-    index.refresh_interval: "30s"
+  index: "app-logs"  # Пишем в alias для ILM
+  
+  # Производительность
+  bulk_max_size: 1600
+  worker: 2
+  compression_level: 1
+  
+  # Retry политика
+  max_retries: 3
+  backoff.init: 1s
+  backoff.max: 60s
+  
+  # Template настройки (не используются с ILM)
+  template.enabled: false
 
+# Логирование Filebeat
 logging.level: info
 logging.to_files: false
 logging.to_stderr: true
+logging.metrics.enabled: false
+
+# Мониторинг
+monitoring.enabled: false
+
+# Производительность
+queue.mem:
+  events: 4096
+  flush.min_events: 512
+  flush.timeout: 1s
+
+# Лимиты ресурсов
+max_procs: 2

@@ -1,5 +1,4 @@
 from typing import Literal
-
 from core.config_dir.config import env
 
 class SpecIndex:
@@ -8,44 +7,45 @@ class SpecIndex:
     }
 
     settings = {
-        "index": {
-            "number_of_shards": 3,
-            "routing.allocation.total_shards_per_node": 4
-        },
-        "number_of_replicas": 1,
+        "number_of_shards": 1,
+        "number_of_replicas": 0,
+        "refresh_interval": "5s",
         "analysis": {
             "analyzer": {
-                "ngram_code_analyzer": {
+                # Автокомплит для кодов
+                "code_autocomplete": {
                     "type": "custom",
                     "tokenizer": "edge_ngram_code",
                     "filter": ["lowercase"]
                 },
-                "ngram_spec_prefix": {
-                    "type": "custom",
-                    "tokenizer": "standard",
-                    "filter": ["lowercase", "ngram_spec_filter"]
+                # Автокомплит для названий
+                "title_autocomplete": {
+                    "type": "custom", 
+                    "tokenizer": "edge_ngram_title",
+                    "filter": ["lowercase", "russian_stop"]
                 },
-                "ngram_spec_search": {
+                # Глубокий поиск (стандартный)
+                "deep_search": {
                     "type": "custom",
-                    "tokenizer": "standard",
-                    "filter": ["lowercase", "russian_stop", "ngram_spec_filter"]
+                    "tokenizer": "standard", 
+                    "filter": ["lowercase", "russian_stop"]
                 }
             },
             "tokenizer": {
                 "edge_ngram_code": {
                     "type": "edge_ngram",
                     "min_gram": 2,
+                    "max_gram": 8,
+                    "token_chars": ["letter", "digit", "punctuation"]
+                },
+                "edge_ngram_title": {
+                    "type": "edge_ngram", 
+                    "min_gram": 2,
                     "max_gram": 10,
-                    "token_chars": ["punctuation", "digit"]
+                    "token_chars": ["letter"]
                 }
             },
             "filter": {
-                "ngram_spec_filter": {
-                    "type": "edge_ngram",
-                    "min_gram": 2,
-                    "max_gram": 15,
-                    "token_chars": ["letter"]
-                },
                 "russian_stop": {
                     "type": "stop",
                     "ignore_case": True,
@@ -54,54 +54,63 @@ class SpecIndex:
             }
         }
     }
+    
     mappings = {
         "properties": {
             "id": {
                 "type": "long",
-                "index": False,
-                "coerce": False
+                "index": False
             },
-            "code_prefix": {
+            "code_autocomplete": {
                 "type": "text",
-                "analyzer": "ngram_code_analyzer"
+                "analyzer": "code_autocomplete"
             },
-            "spec_title_prefix": {
+            "title": {
                 "type": "text",
-                "analyzer": "ngram_spec_prefix"
-            },
-            "spec_title_search": {
-                "type": "text",
-                "analyzer": "ngram_spec_search"
+                "analyzer": "deep_search",
+                "fields": {
+                    "autocomplete": {
+                        "type": "text",
+                        "analyzer": "title_autocomplete"
+                    }
+                }
             }
         }
     }
 
-
     @staticmethod
     def search_ptn(search_phrase: str, search_mode: Literal["auto", "deep"]):
-        query_autocomplete = {
+        if search_mode == "auto":
+            return {
+                "bool": {
+                    "should": [
+                        {
+                            "match": {
+                                "code_autocomplete": {
+                                    "query": search_phrase,
+                                    "boost": 3
+                                }
+                            }
+                        },
+                        {
+                            "match": {
+                                "title.autocomplete": {
+                                    "query": search_phrase,
+                                    "boost": 2
+                                }
+                            }
+                        }
+                    ]
+                }
+            }
+        return {         # == deep
             "multi_match": {
-              "query": search_phrase,
-              "fields": ["code_prefix^3" ,"spec_title_prefix"],
-              "type": "bool_prefix"
-            }
-        }
-        query_deep_search = {
-            "match": {
-              "spec_title_search": {
                 "query": search_phrase,
-                "fuzziness": "auto",
+                "fields": ["title", "code_autocomplete^2"],
+                "fuzziness": "AUTO",
                 "prefix_length": 1
-              }
             }
         }
-
-        search_modes = {
-            "auto": query_autocomplete,
-            "deep": query_deep_search
-        }
-
-        return search_modes[search_mode]
 
 
 class GroupIndex:
@@ -110,14 +119,12 @@ class GroupIndex:
     }
 
     settings = {
-        "index": {
-            "number_of_shards": 3,
-            "routing.allocation.total_shards_per_node": 4
-        },
-        "number_of_replicas": 1,
+        "number_of_shards": 1,
+        "number_of_replicas": 0,
+        "refresh_interval": "5s",
         "analysis": {
             "analyzer": {
-                "ngram_group_analyzer": {
+                "group_autocomplete": {
                     "type": "custom",
                     "tokenizer": "edge_ngram_group",
                     "filter": ["uppercase"]
@@ -127,83 +134,156 @@ class GroupIndex:
                 "edge_ngram_group": {
                     "type": "edge_ngram",
                     "min_gram": 2,
-                    "max_gram": 10,
+                    "max_gram": 8,
                     "token_chars": ["letter", "digit", "punctuation"]
                 }
             }
         }
     }
+    
     mappings = {
         "properties": {
             "id": {
                 "type": "long",
-                "index": False,
-                "coerce": False
+                "index": False
             },
             "group_name": {
                 "type": "text",
-                "analyzer": "ngram_group_analyzer"
+                "analyzer": "group_autocomplete"
             }
         }
     }
 
     @staticmethod
     def search_ptn(search_phrase: str):
-        query = {
-            'match': {
-                'group_name': {
-                    'query': search_phrase
+        return {
+            "match": {
+                "group_name": {
+                    "query": search_phrase
                 }
             }
         }
-        return query
 
 
 class LogIndex:
-    aliases = {}
+    aliases = {env.log_index: {"is_write_index": True}}
+    
+    # ILM Policy для автоматического управления жизненным циклом
+    policy_name = "app-logs-policy"
+    ilm_policy = {
+        "policy": {
+            "phases": {
+                "hot": {
+                    "actions": {
+                        "rollover": {
+                            "max_size": "1GB",
+                            "max_age": "7d",
+                            "max_docs": 1000000
+                        },
+                        "set_priority": {
+                            "priority": 100
+                        }
+                    }
+                },
+                "warm": {
+                    "min_age": "7d",
+                    "actions": {
+                        "allocate": {
+                            "number_of_replicas": 0
+                        },
+                        "forcemerge": {
+                            "max_num_segments": 1
+                        },
+                        "set_priority": {
+                            "priority": 50
+                        }
+                    }
+                },
+                "cold": {
+                    "min_age": "30d",
+                    "actions": {
+                        "allocate": {
+                            "number_of_replicas": 0
+                        },
+                        "set_priority": {
+                            "priority": 0
+                        }
+                    }
+                },
+                "delete": {
+                    "min_age": "90d",
+                    "actions": {
+                        "delete": {}
+                    }
+                }
+            }
+        }
+    }
+    
     settings = {
         "number_of_shards": 1,
         "number_of_replicas": 0,
         "refresh_interval": "30s",
-        "index.mapping.total_fields.limit": 50
+        "index.mapping.total_fields.limit": 20,
+        "index.codec": "best_compression",
+        "index.lifecycle.name": policy_name,
+        "index.lifecycle.rollover_alias": env.log_index,
+        "analysis": {
+            "analyzer": {
+                "log_simple": {
+                    "type": "custom",
+                    "tokenizer": "simple_pattern",
+                    "pattern": "[\\s\\-_\\.:/]+",
+                    "filter": ["lowercase"]
+                }
+            }
+        }
     }
+    
     mappings = {
         "properties": {
             "@timestamp": {
                 "type": "date"
             },
             "level": {
-                "type": "keyword",
-                "index": True
+                "type": "keyword"
             },
             "message": {
                 "type": "text",
                 "index": False,
-                "store": True
+                "store": True,
+                "fields": {
+                    "search": {
+                        "type": "text",
+                        "analyzer": "log_simple"
+                    }
+                }
             },
             "service": {
-                "type": "keyword",
-                "index": True
+                "type": "keyword"
             },
             "method": {
-                "type": "keyword",
-                "index": False
+                "type": "keyword"
             },
             "url": {
                 "type": "keyword",
-                "index": False
+                "index": False,
+                "ignore_above": 512
             },
-            "function": {
+            "func": {
+                "type": "keyword"
+            },
+            "location": {
                 "type": "keyword",
-                "index": False
+                "index": False,
+                "ignore_above": 256
             },
             "line": {
-                "type": "integer",
+                "type": "short",
                 "index": False
             },
-            "file": {
-                "type": "keyword",
-                "index": False
+            "ip": {
+                "type": "ip"
             }
         }
     }

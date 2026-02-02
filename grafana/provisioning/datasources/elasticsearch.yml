@@ -5,12 +5,39 @@ datasources:
     type: elasticsearch
     access: proxy
     url: http://es01:9200
-    database: "app-logs-*"
+    database: "app-logs-index-000001"  # Конкретный индекс вместо паттерна
     jsonData:
       interval: Daily
       timeField: "@timestamp"
-      esVersion: "9.0.2"
+      esVersion: "8.0.0"
       logMessageField: "message"
       logLevelField: "level"
-    isDefault: false
+      maxConcurrentShardRequests: 5
+      includeFrozen: false
+    isDefault: true
     editable: true
+
+# Создаем роль для мониторинга логов
+#curl -X POST "localhost:9200/_security/role/logs_reader" \
+#  -H "Content-Type: application/json" \
+#  -u "elastic:${ELASTIC_PASSWORD}" \
+#  -d '{
+#    "indices": [
+#      {
+#        "names": ["app-logs*"],
+#        "privileges": ["read", "view_index_metadata"]
+#      }
+#    ]
+#  }'
+#
+## Создаем пользователя для Grafana
+#curl -X POST "localhost:9200/_security/user/grafana_user" \
+#  -H "Content-Type: application/json" \
+#  -u "elastic:${ELASTIC_PASSWORD}" \
+#  -d '{
+#    "password": "grafana_password_123",
+#    "roles": ["logs_reader"],
+#    "full_name": "Grafana Monitoring User"
+#  }'
+#
+#echo "Пользователь grafana_user создан с паролем: grafana_password_123"

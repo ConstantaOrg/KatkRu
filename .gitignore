@@ -175,3 +175,5 @@ ttable_*.json
 docker-compose.dev.yml
 makets/
 test_output/
+examples/
+filebeat_debug_commands.md
