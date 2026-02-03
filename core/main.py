@@ -26,7 +26,7 @@ async def lifespan(web_app):
     "Иниц. индекса в Elasticsearch"
     if env.es_init:
         await init_elasticsearch_index(
-            ["app-logs-index-000001", "specs-index", "group-index"],
+            ["applogs", "specs-index", "group-index"],
             web_app.state.pg_pool,
             web_app.state.es_client
         )
@@ -60,4 +60,4 @@ app.add_middleware(AuthUXASGIMiddleware)
 
 
 if __name__ == '__main__':
-    uvicorn.run('core.main:app', host="0.0.0.0", port=8000, log_config=None)
+    uvicorn.run('core.main:app', host="0.0.0.0", port=8000, log_config=None, workers=env.uvi_workers)

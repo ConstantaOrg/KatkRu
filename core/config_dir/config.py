@@ -79,6 +79,7 @@ class Settings(BaseSettings):
 
     app_mode: AppMode
     post_processing_responses: bool # Использовать респонс модели или нет. Влияет на производительность ценой читаемости
+    uvi_workers: int
     es_init: bool
     allowed_ips: set[str] = {"172.18.0.1", "127.0.0.1"}
     trusted_proxies: set[str] =  {'127.0.0.1', '172.18.0.1'}

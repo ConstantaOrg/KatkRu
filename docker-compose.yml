@@ -62,25 +62,46 @@ services:
   filebeat:
     image: docker.elastic.co/beats/filebeat:${ELASTIC_VERSION}
     container_name: fb_monitor
-    command: filebeat -e --strict.perms=false
+    command: filebeat -e --strict.perms=false -c /usr/share/filebeat/filebeat.yml
     user: root
     environment:
       - ELASTICSEARCH_HOSTS=http://es01:9200
       - KIBANA_HOST=http://kibana01:5601
     volumes:
-      - ./filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - fb_data01:/usr/share/filebeat/data
+      - fb_config:/usr/share/filebeat
       - ./logs:/app/logs:ro
     healthcheck:
-      test: ["CMD-SHELL", "filebeat", "test", "config"]
-      interval: 10s
-      timeout: 8s
+      test: ["CMD-SHELL", "filebeat test config"]
+      interval: 30s
+      timeout: 10s
       retries: 5
     depends_on:
       es01:
         condition: service_healthy
+      web_app:
+        condition: service_started
+      filebeat-setup:
+        condition: service_completed_successfully
+    networks:
+      net_con:
+
+  filebeat-setup:
+    image: docker.elastic.co/beats/filebeat:${ELASTIC_VERSION}
+    container_name: fb_setup
+    user: root
+    command: >
+      bash -c "
+        cp /tmp/filebeat.yml /usr/share/filebeat/filebeat.yml &&
+        chmod 600 /usr/share/filebeat/filebeat.yml &&
+        chown root:root /usr/share/filebeat/filebeat.yml &&
+        echo 'Filebeat config copied and permissions set'
+      "
+    volumes:
+      - ./filebeat.yml:/tmp/filebeat.yml:ro
+      - fb_config:/usr/share/filebeat
     networks:
       net_con:
 
@@ -97,7 +118,7 @@ services:
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSW}
     volumes:
       - grafana_data:/var/lib/grafana
-#      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/provisioning:/etc/grafana/provisioning
     # внешний | внутренний
     ports:
       - "127.0.0.1:3000:3000"
@@ -159,6 +180,8 @@ volumes:
   redis_data:
     driver: local
   fb_data01:
+    driver: local
+  fb_config:
     driver: local
   grafana_data:
     driver: local

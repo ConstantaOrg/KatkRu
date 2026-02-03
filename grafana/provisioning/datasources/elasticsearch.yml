@@ -5,15 +5,16 @@ datasources:
     type: elasticsearch
     access: proxy
     url: http://es01:9200
-    database: "app-logs-index-000001"  # Конкретный индекс вместо паттерна
+    database: "applogs"
     jsonData:
-      interval: Daily
+      interval: "Daily"
       timeField: "@timestamp"
       esVersion: "8.0.0"
       logMessageField: "message"
       logLevelField: "level"
       maxConcurrentShardRequests: 5
       includeFrozen: false
+      tlsSkipVerify: true
     isDefault: true
     editable: true
 

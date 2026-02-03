@@ -97,31 +97,35 @@ logger_settings = {
             "class": "logging.handlers.TimedRotatingFileHandler",
             "level": "DEBUG",
             "formatter": "no_color",
-            "filename": LOG_DIR / "debug" / "app.log",
-            "when": "midnight",
+            "filename": LOG_DIR / "debug.log",
+            "when": "H",
+            "interval": 24,
             "backupCount": 60,
             "encoding": "utf8",
-            "filters": ["debug_filter"]
+            "filters": ["debug_filter"],
+            "suffix": ".%Y%m%d.debug"
         },
         "info_warning_errors_file": {
             "class": "logging.handlers.TimedRotatingFileHandler",
             "level": "INFO",
             "formatter": "no_color",
-            "filename": LOG_DIR / "info_warning_error" / "app.log",
+            "filename": LOG_DIR / "app.log",
             "when": "midnight",
             "backupCount": 60,
             "encoding": "utf8",
-            "filters": ["info_warning_error_filter"]
+            "filters": ["info_warning_error_filter"],
+            "suffix": ".%Y%m%d.app"
         },
         "critical_file": {
             "class": "logging.handlers.TimedRotatingFileHandler",
             "level": "CRITICAL",
             "formatter": "no_color",
-            "filename": LOG_DIR / "critical" / "app.log",
-            "when": "midnight",
-            "backupCount": 180,
+            "filename": LOG_DIR / "critical.log",
+            "when": "W0",
+            "backupCount": 26,
             "encoding": "utf8",
-            "filters": ["error_filter"]
+            "filters": ["error_filter"],
+            "suffix": ".%Y%m%d.critical"
         }
     },
     "loggers": {

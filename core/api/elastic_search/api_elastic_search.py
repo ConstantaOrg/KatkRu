@@ -26,6 +26,14 @@ async def init_elasticsearch_index(index_names: list[str], db: Pool, aioes: Asyn
         records_groups = await conn.groups.groups2elastic()
     log_event(f'Будущие документы. Из БД взяты records_specs: \033[34m{len(records_specs)}\033[0m; records_groups: \033[32m{len(records_groups)}\033[0m')
 
+    # Создаём ILM политику для логов
+    try:
+        ilm_policy = LogIndex.get_ilm_policy()
+        await aioes.ilm.put_policy(name="app-logs-policy", policy=ilm_policy)
+        log_event("ILM политика 'app-logs-policy' создана", level='WARNING')
+    except Exception as e:
+        log_event(f"Ошибка создания ILM политики: {e}", level='ERROR')
+
     "Индексы для инициализации"
     app_indices = [
         [env.log_index, None, LogIndex],             # Индекс, флаг для индексации, Класс настроек индекса
@@ -45,29 +53,33 @@ async def init_elasticsearch_index(index_names: list[str], db: Pool, aioes: Asyn
         except NotFoundError:
             pass
 
-        "Создаем ILM политику"
-        if hasattr(idx_conf, 'ilm_policy'):  # для LogIndex
-            try:
-                await aioes.ilm.put_lifecycle(name=idx_conf.policy_name, body=idx_conf.ilm_policy)
-                log_event(f"ILM policy '{idx_conf.policy_name}' создана/обновлена", level='INFO')
-            except Exception as e:
-                log_event(f"Ошибка создания ILM policy: {e}", level='CRITICAL')
-
         "Создаём индекс"
         log_event("Создание индекса: %s", index_alias, level='WARNING')
-        await aioes.indices.create(
-            index=index_name,
-            aliases=idx_conf.aliases,
-            settings=idx_conf.settings,
-            mappings=idx_conf.mappings
-        )
+        
+        # Для логов создаём индекс с ILM
+        if index_alias == env.log_index:
+            # Создаём bootstrap индекс для ILM
+            bootstrap_index = f"{index_alias}-000001"
+            await aioes.indices.create(
+                index=bootstrap_index,
+                aliases={index_alias: {"is_write_index": True}},
+                settings=idx_conf.settings,
+                mappings=idx_conf.mappings
+            )
+        else:
+            await aioes.indices.create(
+                index=index_name,
+                aliases=idx_conf.aliases,
+                settings=idx_conf.settings,
+                mappings=idx_conf.mappings
+            )
 
     "Вносим записи(документы)"
     spec_status = await fill_spec_index(records_specs, index_names[1], aioes) if app_indices[1][1] else False # Не вносим записи, если нет индексации
     group_status = await fill_group_index(records_groups, index_names[2], aioes) if app_indices[2][1] else False # Не вносим записи, если нет индексации
     log_level = 'WARNING' if spec_status and group_status else 'CRITICAL'
 
-    log_event(f'Индексация и создание "{index_names}" | \033[34mspec_status: {spec_status}; group_status: {group_status}; app-logs-index: создан с ILM\033[0m', level=log_level)
+    log_event(f'Индексация и создание "{index_names}" | \033[34mspec_status: {spec_status}; group_status: {group_status}; applogs: создан с ILM\033[0m', level=log_level)
     return {'success': spec_status and group_status, 'message': f'Индексы {index_names} подняты, документы вставлены'}
 
 
