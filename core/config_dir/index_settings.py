@@ -166,10 +166,61 @@ class GroupIndex:
 
 
 class LogIndex:
-    aliases = {env.log_index: {}}
-    
+    aliases = {env.log_index: {"is_write_index": True}}
+
+    policy_name = "app-logs-policy"
+
+    ilm_policy = {
+        "policy": {
+            "phases": {
+                "hot": {
+                    "actions": {
+                        "rollover": {
+                            "max_size": "1GB",
+                            "max_age": "7d",
+                            "max_docs": 1000000
+                        },
+                        "set_priority": {
+                            "priority": 100
+                        }
+                    }
+                },
+                "warm": {
+                    "min_age": "7d",
+                    "actions": {
+                        "allocate": {
+                            "number_of_replicas": 0
+                        },
+                        "forcemerge": {
+                            "max_num_segments": 1
+                        },
+                        "set_priority": {
+                            "priority": 50
+                        }
+                    }
+                },
+                "cold": {
+                    "min_age": "30d",
+                    "actions": {
+                        "allocate": {
+                            "number_of_replicas": 0
+                        },
+                        "set_priority": {
+                            "priority": 0
+                        }
+                    }
+                },
+                "delete": {
+                    "min_age": "90d",
+                    "actions": {
+                        "delete": {}
+                    }
+                }
+            }
+        }
+    }
     settings = {
-        "number_of_shards": 1,
+        "number_of_shards": 2,
         "number_of_replicas": 0,
         "refresh_interval": "30s",
         "index.mapping.total_fields.limit": 30,
@@ -184,7 +235,6 @@ class LogIndex:
             }
         }
     }
-    
     mappings = {
         "properties": {
             "@timestamp": {
@@ -195,22 +245,6 @@ class LogIndex:
             },
             "message": {
                 "type": "text",
-                "index": False,
-                "store": True,
-                "fields": {
-                    "search": {
-                        "type": "text",
-                        "analyzer": "log_simple"
-                    }
-                }
-            },
-            "original_message": {
-                "type": "text",
-                "index": False,
-                "store": True
-            },
-            "raw_message": {
-                "type": "text",
                 "analyzer": "log_simple"
             },
             "service": {
@@ -219,89 +253,26 @@ class LogIndex:
             "environment": {
                 "type": "keyword"
             },
-            # HTTP поля - могут отсутствовать
             "method": {
-                "type": "keyword",
-                "null_value": "UNKNOWN"
+                "type": "keyword"
             },
             "url": {
                 "type": "keyword",
-                "index": False,
-                "ignore_above": 512,
-                "null_value": "N/A"
+                "ignore_above": 2048
             },
-            # Код и локация - могут отсутствовать
             "func": {
-                "type": "keyword",
-                "null_value": "unknown_function"
+                "type": "keyword"
             },
             "location": {
                 "type": "keyword",
-                "index": False,
-                "ignore_above": 256,
-                "null_value": "unknown_location"
+                "ignore_above": 512
             },
             "line": {
-                "type": "short",
-                "index": False,
-                "null_value": 0
+                "type": "integer"
             },
-            # IP может отсутствовать
             "ip": {
                 "type": "ip",
-                "null_value": "0.0.0.0",
                 "ignore_malformed": True
-            },
-            # Дополнительные поля для гибкости
-            "timestamp": {
-                "type": "keyword",
-                "index": False
-            },
-            "tags": {
-                "type": "keyword"
             }
         }
     }
-
-    @staticmethod
-    def get_ilm_policy():
-        """ILM политика для логов приложения"""
-        return {
-            "policy": {
-                "phases": {
-                    "hot": {
-                        "actions": {
-                            "rollover": {
-                                "max_size": "50mb",
-                                "max_age": "1d"
-                            },
-                            "set_priority": {
-                                "priority": 100
-                            }
-                        }
-                    },
-                    "warm": {
-                        "min_age": "2d",
-                        "actions": {
-                            "set_priority": {
-                                "priority": 50
-                            },
-                            "allocate": {
-                                "number_of_replicas": 0
-                            }
-                        }
-                    },
-                    "cold": {
-                        "min_age": "7d",
-                        "actions": {
-                            "set_priority": {
-                                "priority": 0
-                            }
-                        }
-                    },
-                    "delete": {
-                        "min_age": "30d"
-                    }
-                }
-            }
-        }

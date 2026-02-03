@@ -1,6 +1,8 @@
 import os
 import inspect
+import json
 from pathlib import Path
+from datetime import datetime
 
 import logging
 from logging.config import dictConfig
@@ -19,17 +21,34 @@ LOG_DIR = Path(WORKDIR) / 'logs'
 
 
 
-class InfoWarningFilter(logging.Filter):
-    def logger_filter(self, log):
-        return log.levelno in (logging.INFO, logging.WARNING, logging.ERROR)
+class JSONFormatter(logging.Formatter):
+    def format(self, record):
+        log_entry = {
+            "@timestamp": datetime.utcnow().isoformat() + "Z",
+            "level": record.levelname,
+            "message": record.getMessage(),
+            "service": "fastapi-app",
+            "environment": getattr(record, 'environment', 'production'),
+            "method": getattr(record, 'method', 'UNKNOWN'),
+            "url": str(getattr(record, 'url', 'N/A')),  # Принудительно преобразуем в строку
+            "func": getattr(record, 'func', 'unknown_function'),
+            "location": getattr(record, 'location', 'unknown_location'),
+            "line": getattr(record, 'line', 0),
+            "ip": str(getattr(record, 'ip', '0.0.0.0'))  # IP тоже в строку
+        }
+        
+        try:
+            return json.dumps(log_entry, ensure_ascii=False)
+        except (TypeError, ValueError) as e:
+            fallback_entry = {
+                "@timestamp": datetime.utcnow().isoformat() + "Z",
+                "level": record.levelname,
+                "message": str(record.getMessage()),
+                "service": "fastapi-app",
+                "error": f"JSON serialization failed: {str(e)}"
+            }
+            return json.dumps(fallback_entry, ensure_ascii=False)
 
-class ErrorFilter(logging.Filter):
-    def logger_filter(self, log):
-        return log.levelno == logging.CRITICAL
-
-class DebugFilter(logging.Filter):
-    def logger_filter(self, log):
-        return log.levelno == logging.DEBUG
 
 lvls = {
     "DEBUG": 10,
@@ -59,78 +78,31 @@ logger_settings = {
                 "CRITICAL": "bold_red"
             }
         },
-        "no_color": {
-            "()": "colorlog.ColoredFormatter",
-            "format": "%(levelname)-8s | "
-                      "D%(asctime)s | "
-                      "%(method)s %(url)s | "
-                      "%(location)s: def %(func)s(): line - %(line)d - %(ip)s "
-                      "%(message)s",
-            "datefmt": "%d-%m-%Y T%H:%M:%S",
-            "log_colors": {
-                "DEBUG": "white",
-                "INFO": "green",
-                "WARNING": "yellow",
-                "ERROR": "red",
-                "CRITICAL": "bold_red"
-            }
+        "json": {
+            "()": JSONFormatter
         }
     },
-    "filters": {
-        "info_warning_error_filter": {
-            "()": InfoWarningFilter,
-        },
-        "error_filter": {
-            "()": ErrorFilter,
-        },
-        "debug_filter": {
-            "()": DebugFilter,
-        }
-    },
+    "filters": {},
     "handlers": {
         "console": {
             "class": "logging.StreamHandler",
             "formatter": "default",
             "level": "DEBUG"
         },
-        "debug_file": {
+        "json_file": {
             "class": "logging.handlers.TimedRotatingFileHandler",
             "level": "DEBUG",
-            "formatter": "no_color",
-            "filename": LOG_DIR / "debug.log",
-            "when": "H",
-            "interval": 24,
-            "backupCount": 60,
-            "encoding": "utf8",
-            "filters": ["debug_filter"],
-            "suffix": ".%Y%m%d.debug"
-        },
-        "info_warning_errors_file": {
-            "class": "logging.handlers.TimedRotatingFileHandler",
-            "level": "INFO",
-            "formatter": "no_color",
+            "formatter": "json",
             "filename": LOG_DIR / "app.log",
             "when": "midnight",
-            "backupCount": 60,
+            "backupCount": 30,
             "encoding": "utf8",
-            "filters": ["info_warning_error_filter"],
-            "suffix": ".%Y%m%d.app"
-        },
-        "critical_file": {
-            "class": "logging.handlers.TimedRotatingFileHandler",
-            "level": "CRITICAL",
-            "formatter": "no_color",
-            "filename": LOG_DIR / "critical.log",
-            "when": "W0",
-            "backupCount": 26,
-            "encoding": "utf8",
-            "filters": ["error_filter"],
-            "suffix": ".%Y%m%d.critical"
+            "filters": []
         }
     },
     "loggers": {
         "prod_log": {
-            "handlers": ["console", "info_warning_errors_file", "critical_file", "debug_file"],
+            "handlers": ["console", "json_file"],
             "level": "DEBUG",
             "propagate": False
         }
@@ -150,10 +122,10 @@ def log_event(event: str, *args, request: Request | WebSocket=None, level: Liter
 
     meth, url, ip = '', '', ''
     if isinstance(request, Request):
-        meth, url = request.method, request.url
+        meth, url = request.method, str(request.url)  # Преобразуем URL в строку
         ip = request.state.client_ip if hasattr(request.state, 'client_ip') else get_client_ip(request)
     elif isinstance(request, WebSocket):
-        url, ip = request.url, get_client_ip(request)
+        url, ip = str(request.url), get_client_ip(request)  # Преобразуем URL в строку
 
     message = event % args if args else event
 

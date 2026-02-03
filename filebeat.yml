@@ -7,16 +7,20 @@ setup.template.pattern: "applogs-*"
 setup.kibana:
   host: ${KIBANA_HOST}
 
-# Простой input без сложной обработки
+# Простой input для JSON логов
 filebeat.inputs:
 - type: filestream
-  id: app-logs-simple
+  id: app-logs-json
   enabled: true
   paths:
-    - /app/logs/*.log
+    - /app/logs/app.log*
+  # Парсим JSON логи
+  parsers:
+    - ndjson:
+        keys_under_root: true
+        add_error_key: true
   fields:
     service: "fastapi-app"
-    environment: "production"
   fields_under_root: true
 
 # Оптимизированные процессоры - убираем ненужные поля
@@ -37,16 +41,14 @@ processors:
 # Простой вывод в Elasticsearch
 output.elasticsearch:
   hosts: ["${ELASTICSEARCH_HOSTS}"]
-  index: "app-logs-index-000001"
+  index: "applogsindex-000001"
   
   # Производительность
   bulk_max_size: 50
   worker: 1
   
   # Template настройки
-  template.enabled: true
-  template.name: "applogs"
-  template.pattern: "applogs-*"
+  template.enabled: false
 
 # Логирование
 logging.level: info
