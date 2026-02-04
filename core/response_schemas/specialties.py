@@ -9,7 +9,7 @@ from pydantic import Field
 from . import BaseResponse, ListResponse
 
 
-class SpecialtiesAllResponse(ListResponse):
+class SpecialtiesAllResponse(BaseResponse):
     """
     Ответ для POST /public/specialties/all
     Возвращает список всех специальностей с пагинацией.

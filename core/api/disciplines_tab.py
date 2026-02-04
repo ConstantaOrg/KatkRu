@@ -1,15 +1,16 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from starlette.requests import Request
 
 from core.data.postgre import PgSqlDep
 from core.response_schemas.disciplines_tab import (
-    DisciplinesGetResponse, DisciplinesUpdateResponse, DisciplinesAddResponse
+    DisciplinesGetResponse, DisciplinesUpdateResponse
 )
 from core.schemas.cookie_settings_schema import JWTCookieDep
 from core.schemas.n8n_ui.disciplines_schema import DisciplineUpdateSchema, DisciplineAddSchema
 from core.schemas.schemas2depends import DisciplinesPagenSchema
 from core.utils.anything import Roles
 from core.utils.lite_dependencies import role_require
+from core.utils.logger import log_event
 from core.utils.response_model_utils import (
     DisciplinesAddSuccessResponse, DisciplinesAddConflictResponse,
     create_disciplines_add_response, create_response_json
@@ -18,7 +19,7 @@ from core.utils.response_model_utils import (
 router = APIRouter(prefix='/private/disciplines', tags=['Disciplines📚'])
 
 
-@router.get('/get', dependencies=[Depends(role_require(Roles.methodist, Roles.read_all))], response_model=DisciplinesGetResponse)
+@router.post('/get', dependencies=[Depends(role_require(Roles.methodist, Roles.read_all))], response_model=DisciplinesGetResponse)
 async def get_disciplines(pagen: DisciplinesPagenSchema, db: PgSqlDep, request: Request, _: JWTCookieDep):
     disciplines = await db.disciplines.get_all(pagen.limit, pagen.offset)
     log_event(f"Отобразили Учителей | user_id: \033[31m{request.state.user_id}\033[0m", request=request)
@@ -40,12 +41,10 @@ async def add_discipline(body: DisciplineAddSchema, db: PgSqlDep, request: Reque
     if not discipline_id:
         log_event(f'Не удалось добавить предмет | user_id: \033[31m{request.state.user_id}\033[0m | title: \033[34m{body.title}\033[0m',
             request=request, level='WARNING')
-        # Use @overload function for type-safe conflict response
         response = create_disciplines_add_response(success=False)
         return create_response_json(response, status_code=409)
 
     log_event(f'Добавили дисциплину | user_id: \033[31m{request.state.user_id}\033[0m | title, discipline_id: \033[34m{body.title}, {discipline_id}\033[0m', request=request)
-    # Use @overload function for type-safe success response
     response = create_disciplines_add_response(success=True, discipline_id=discipline_id)
     return create_response_json(response, status_code=200)
 

@@ -2,7 +2,7 @@ import os
 import inspect
 import json
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, UTC
 
 import logging
 from logging.config import dictConfig
@@ -12,7 +12,7 @@ from typing import Literal
 from starlette.requests import Request
 from starlette.websockets import WebSocket
 
-from core.config_dir.config import WORKDIR
+from core.config_dir.config import WORKDIR, env
 from core.utils.anything import create_log_dirs, get_client_ip
 
 
@@ -24,24 +24,32 @@ LOG_DIR = Path(WORKDIR) / 'logs'
 class JSONFormatter(logging.Formatter):
     def format(self, record):
         log_entry = {
-            "@timestamp": datetime.utcnow().isoformat() + "Z",
+            "@timestamp": datetime.now(UTC).isoformat() + "Z",
             "level": record.levelname,
             "message": record.getMessage(),
             "service": "fastapi-app",
-            "environment": getattr(record, 'environment', 'production'),
-            "method": getattr(record, 'method', 'UNKNOWN'),
-            "url": str(getattr(record, 'url', 'N/A')),  # Принудительно преобразуем в строку
+            "environment": env.app_mode,
+            "method": getattr(record, 'method', ''),
+            "url": str(getattr(record, 'url', '')),
             "func": getattr(record, 'func', 'unknown_function'),
             "location": getattr(record, 'location', 'unknown_location'),
             "line": getattr(record, 'line', 0),
-            "ip": str(getattr(record, 'ip', '0.0.0.0'))  # IP тоже в строку
+            "ip": str(getattr(record, 'ip', ''))
         }
         
+        # Добавляем дополнительные поля из extra (для HTTP метрик и ресурсов)
+        extra_fields = [
+            'http_status', 'response_time', 'cpu_percent', 'memory_percent', 
+            'memory_used_mb', 'memory_total_mb', 'metric_type'
+        ]
+        for key in extra_fields:
+            log_entry[key] = str(getattr(record, key, ''))
+
         try:
             return json.dumps(log_entry, ensure_ascii=False)
         except (TypeError, ValueError) as e:
             fallback_entry = {
-                "@timestamp": datetime.utcnow().isoformat() + "Z",
+                "@timestamp": datetime.now(UTC).isoformat() + "Z",
                 "level": record.levelname,
                 "message": str(record.getMessage()),
                 "service": "fastapi-app",
@@ -113,7 +121,7 @@ dictConfig(logger_settings)
 logger = logging.getLogger('prod_log')
 
 
-def log_event(event: str, *args, request: Request | WebSocket=None, level: Literal['DEBUG','INFO','WARNING','ERROR','CRITICAL'] ='INFO'):
+def log_event(event: str, *args, request: Request | WebSocket=None, level: Literal['DEBUG','INFO','WARNING','ERROR','CRITICAL'] ='INFO', **extra):
     cur_call = inspect.currentframe()
     outer = inspect.getouterframes(cur_call)[1]
     filename = os.path.relpath(outer.filename)
@@ -122,10 +130,10 @@ def log_event(event: str, *args, request: Request | WebSocket=None, level: Liter
 
     meth, url, ip = '', '', ''
     if isinstance(request, Request):
-        meth, url = request.method, str(request.url)  # Преобразуем URL в строку
+        meth, url = request.method, str(request.url)
         ip = request.state.client_ip if hasattr(request.state, 'client_ip') else get_client_ip(request)
     elif isinstance(request, WebSocket):
-        url, ip = str(request.url), get_client_ip(request)  # Преобразуем URL в строку
+        url, ip = str(request.url), get_client_ip(request)
 
     message = event % args if args else event
 
@@ -135,5 +143,6 @@ def log_event(event: str, *args, request: Request | WebSocket=None, level: Liter
         'func': func,
         'line': line,
         'url': url,
-        'ip': ip
+        'ip': ip,
+        **extra
     })

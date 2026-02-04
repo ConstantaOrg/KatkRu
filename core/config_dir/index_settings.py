@@ -260,6 +260,9 @@ class LogIndex:
                 "type": "keyword",
                 "ignore_above": 2048
             },
+            "http_status": {
+                "type": "integer"
+            },
             "func": {
                 "type": "keyword"
             },
@@ -273,6 +276,56 @@ class LogIndex:
             "ip": {
                 "type": "ip",
                 "ignore_malformed": True
+            },
+            # HTTP метрики
+            "response_time": {
+                "type": "float"
+            },
+            # Метрики загруженности сервера (плоская структура для совместимости)
+            "cpu_percent": {
+                "type": "float"
+            },
+            "memory_percent": {
+                "type": "float"
+            },
+            "memory_used_mb": {
+                "type": "float"
+            },
+            "memory_total_mb": {
+                "type": "float"
+            },
+            "metric_type": {
+                "type": "keyword"
+            },
+            # Опционально: вложенная структура для будущего расширения
+            "hardware_usage": {
+                "type": "object",
+                "properties": {
+                    "cpu": {
+                        "type": "object",
+                        "properties": {
+                            "percent": {"type": "float"},
+                            "count": {"type": "integer"}
+                        }
+                    },
+                    "memory": {
+                        "type": "object",
+                        "properties": {
+                            "percent": {"type": "float"},
+                            "used_mb": {"type": "float"},
+                            "total_mb": {"type": "float"},
+                            "available_mb": {"type": "float"}
+                        }
+                    },
+                    "disk": {
+                        "type": "object",
+                        "properties": {
+                            "percent": {"type": "float"},
+                            "used_gb": {"type": "float"},
+                            "total_gb": {"type": "float"}
+                        }
+                    }
+                }
             }
         }
     }

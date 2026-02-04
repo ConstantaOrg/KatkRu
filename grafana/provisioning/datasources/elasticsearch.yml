@@ -5,9 +5,8 @@ datasources:
     type: elasticsearch
     access: proxy
     url: http://es01:9200
-    database: "applogs"
     jsonData:
-      interval: "Daily"
+      index: "applogsindex-*"
       timeField: "@timestamp"
       esVersion: "8.0.0"
       logMessageField: "message"

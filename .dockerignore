@@ -167,3 +167,6 @@ cython_debug/
 dumps/
 test_dumps/
 makets/
+docs/
+dev_docs/
+test_output/

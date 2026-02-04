@@ -179,4 +179,5 @@ examples/
 filebeat_debug_commands.md
 docs_generator/
 grafana/provisioning/dashboards/*.json
-scripts/
+dev_docs/
+metrics_endpoint.py

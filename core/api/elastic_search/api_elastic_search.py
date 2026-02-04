@@ -46,10 +46,6 @@ async def init_elasticsearch_index(index_names: list[str], db: Pool, aioes: Asyn
         except NotFoundError:
             pass
 
-        "Создаём индекс"
-        log_event("Создание индекса: %s", index_alias, level='WARNING')
-        
-
         "Создаем ILM политику"
         if hasattr(idx_conf, 'ilm_policy'):  # для LogIndex
             try:
@@ -59,7 +55,7 @@ async def init_elasticsearch_index(index_names: list[str], db: Pool, aioes: Asyn
                 log_event(f"Ошибка создания ILM policy: {e}", level='CRITICAL')
 
         "Создаём индекс"
-        log_event("Создание индекса: %s", index_alias, level='WARNING')
+        log_event(f"Создание индекса {index_name} | alias: {index_alias}", level='WARNING')
         await aioes.indices.create(
             index=index_name,
             aliases=idx_conf.aliases,

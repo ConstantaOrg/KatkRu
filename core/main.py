@@ -1,3 +1,4 @@
+import asyncio
 from contextlib import asynccontextmanager
 
 import uvicorn
@@ -9,8 +10,9 @@ from starlette.middleware.cors import CORSMiddleware
 
 from core.api import main_router
 from core.api.elastic_search.api_elastic_search import init_elasticsearch_index
-from core.api.middleware import AuthUXASGIMiddleware
+from core.api.middleware import AuthUXASGIMiddleware, create_logging_middleware
 from core.config_dir.config import pool_settings, env, es_settings, redis_settings
+from core.utils.resource_monitor import resource_monitoring_task
 
 
 @asynccontextmanager
@@ -30,9 +32,17 @@ async def lifespan(web_app):
             web_app.state.pg_pool,
             web_app.state.es_client
         )
+    "Недо-Крона сбора метрик загруженности" # Имеет crontab вариацию в ./scripts
+    monitoring_task = asyncio.create_task(resource_monitoring_task(interval=60))
     try:
         yield
     finally:
+        monitoring_task.cancel()
+        try:
+            await monitoring_task
+        except asyncio.CancelledError:
+            pass
+
         await web_app.state.pg_pool.close()
         await web_app.state.es_client.close()
         await web_app.state.redis.close()
@@ -57,6 +67,9 @@ app.add_middleware(
     allow_headers=['*']
 )
 app.add_middleware(AuthUXASGIMiddleware)
+
+# Создаём logging middleware через декоратор
+create_logging_middleware(app)
 
 
 if __name__ == '__main__':
