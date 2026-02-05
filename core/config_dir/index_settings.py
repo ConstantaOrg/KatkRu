@@ -281,7 +281,7 @@ class LogIndex:
             "response_time": {
                 "type": "float"
             },
-            # Метрики загруженности сервера (плоская структура для совместимости)
+            # Метрики загруженности сервера
             "cpu_percent": {
                 "type": "float"
             },
@@ -298,34 +298,34 @@ class LogIndex:
                 "type": "keyword"
             },
             # Опционально: вложенная структура для будущего расширения
-            "hardware_usage": {
-                "type": "object",
-                "properties": {
-                    "cpu": {
-                        "type": "object",
-                        "properties": {
-                            "percent": {"type": "float"},
-                            "count": {"type": "integer"}
-                        }
-                    },
-                    "memory": {
-                        "type": "object",
-                        "properties": {
-                            "percent": {"type": "float"},
-                            "used_mb": {"type": "float"},
-                            "total_mb": {"type": "float"},
-                            "available_mb": {"type": "float"}
-                        }
-                    },
-                    "disk": {
-                        "type": "object",
-                        "properties": {
-                            "percent": {"type": "float"},
-                            "used_gb": {"type": "float"},
-                            "total_gb": {"type": "float"}
-                        }
-                    }
-                }
-            }
+            # "hardware_usage": {
+            #     "type": "object",
+            #     "properties": {
+            #         "cpu": {
+            #             "type": "object",
+            #             "properties": {
+            #                 "percent": {"type": "float"},
+            #                 "count": {"type": "integer"}
+            #             }
+            #         },
+            #         "memory": {
+            #             "type": "object",
+            #             "properties": {
+            #                 "percent": {"type": "float"},
+            #                 "used_mb": {"type": "float"},
+            #                 "total_mb": {"type": "float"},
+            #                 "available_mb": {"type": "float"}
+            #             }
+            #         },
+            #         "disk": {
+            #             "type": "object",
+            #             "properties": {
+            #                 "percent": {"type": "float"},
+            #                 "used_gb": {"type": "float"},
+            #                 "total_gb": {"type": "float"}
+            #             }
+            #         }
+            #     }
+            # }
         }
     }

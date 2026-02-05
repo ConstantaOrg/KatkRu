@@ -7,7 +7,7 @@ from datetime import datetime, UTC
 import logging
 from logging.config import dictConfig
 
-from typing import Literal
+from typing import Literal, Any
 
 from starlette.requests import Request
 from starlette.websockets import WebSocket
@@ -29,21 +29,22 @@ class JSONFormatter(logging.Formatter):
             "message": record.getMessage(),
             "service": "fastapi-app",
             "environment": env.app_mode,
-            "method": getattr(record, 'method', ''),
-            "url": str(getattr(record, 'url', '')),
-            "func": getattr(record, 'func', 'unknown_function'),
-            "location": getattr(record, 'location', 'unknown_location'),
-            "line": getattr(record, 'line', 0),
-            "ip": str(getattr(record, 'ip', ''))
+            "method": record.__dict__.get('method', ''),
+            "url": str(record.__dict__.get('url', '')),
+            "func": record.__dict__.get('func', 'unknown_function'),
+            "location": record.__dict__.get('location', 'unknown_location'),
+            "line": record.__dict__.get('line', 0),
+            "ip": str(record.__dict__.get('ip', ''))
         }
         
         # Добавляем дополнительные поля из extra (для HTTP метрик и ресурсов)
+        # Берем значения напрямую из __dict__ чтобы сохранить типы (числа остаются числами)
         extra_fields = [
             'http_status', 'response_time', 'cpu_percent', 'memory_percent', 
             'memory_used_mb', 'memory_total_mb', 'metric_type'
         ]
         for key in extra_fields:
-            log_entry[key] = str(getattr(record, key, ''))
+            log_entry[key] = record.__dict__.get(key, '')
 
         try:
             return json.dumps(log_entry, ensure_ascii=False)
@@ -121,7 +122,8 @@ dictConfig(logger_settings)
 logger = logging.getLogger('prod_log')
 
 
-def log_event(event: str, *args, request: Request | WebSocket=None, level: Literal['DEBUG','INFO','WARNING','ERROR','CRITICAL'] ='INFO', **extra):
+def log_event(event: Any, *args, request: Request | WebSocket=None, level: Literal['DEBUG','INFO','WARNING','ERROR','CRITICAL'] ='INFO', **extra):
+    event = str(event)
     cur_call = inspect.currentframe()
     outer = inspect.getouterframes(cur_call)[1]
     filename = os.path.relpath(outer.filename)

@@ -1,9 +1,8 @@
 import time
-from datetime import datetime
-from typing import Callable
+from datetime import datetime, UTC
 
 from starlette.requests import Request
-from starlette.responses import Response, JSONResponse
+from starlette.responses import JSONResponse
 from starlette.types import ASGIApp, Send, Receive, Scope
 
 from core.config_dir.config import env
@@ -13,81 +12,36 @@ from core.utils.jwt_factory import get_jwt_decode_payload, reissue_aT
 from core.utils.logger import log_event
 
 
-from starlette.background import BackgroundTask
-from starlette.responses import Response as StarletteResponse, StreamingResponse
+class ASGILoggingMiddleware:
+    def __init__(self, app: ASGIApp):
+        self.app = app
 
+    async def __call__(self, scope: Scope, receive: Receive, send: Send):
+        if scope['type'] not in {'http', 'websocket'}:
+            await self.app(scope, receive, send)
+            return
 
-def create_logging_middleware(app_instance):
-    """
-    Создаёт middleware для логирования HTTP метрик
-    Использует декоратор @app.middleware("http") для надёжной работы
-    """
-    @app_instance.middleware("http")
-    async def logging_middleware(request: Request, call_next):
-        # Устанавливаем client_ip
+        request = Request(scope, receive=receive)
+        
         ip = get_client_ip(request)
         request.state.client_ip = ip
         
         start = time.perf_counter()
+        status_code = 500  # По умолчанию, если что-то пойдет не так
         
-        # Вызываем следующий middleware/endpoint
-        response = await call_next(request)
+        async def send_wrapper(message):
+            nonlocal status_code
+            if message['type'] == 'http.response.start':
+                status_code = message['status']
+            await send(message)
         
-        duration = time.perf_counter() - start
-        
-        # Если это StreamingResponse, нужно собрать chunks
-        if isinstance(response, StreamingResponse):
-            chunks = []
-            async for chunk in response.body_iterator:
-                chunks.append(chunk)
-            res_body = b''.join(chunks)
-            
-            # Логируем в background task
-            async def log_task():
-                log_event(
-                    f'HTTP {request.method} {request.url.path}',
-                    request=request,
-                    http_status=response.status_code,
-                    response_time=round(duration, 4)
-                )
-                if duration > 7.0:
-                    log_event(f'Долгий ответ | {duration: .4f}', request=request, level='WARNING')
-            
-            task = BackgroundTask(log_task)
-            
-            # Возвращаем новый Response
-            return StarletteResponse(
-                content=res_body,
-                status_code=response.status_code,
-                headers=dict(response.headers),
-                media_type=response.media_type,
-                background=task
-            )
-        else:
-            # Для обычных Response логируем сразу в background task
-            async def log_task():
-                log_event(
-                    f'HTTP {request.method} {request.url.path}',
-                    request=request,
-                    http_status=response.status_code,
-                    response_time=round(duration, 4)
-                )
-                if duration > 7.0:
-                    log_event(f'Долгий ответ | {duration: .4f}', request=request, level='WARNING')
-            
-            task = BackgroundTask(log_task)
-            
-            # Добавляем task к существующим background tasks
-            if hasattr(response, 'background') and response.background:
-                # Если уже есть tasks, добавляем наш
-                original_tasks = response.background
-                response.background = BackgroundTask(lambda: None)  # Placeholder
-                response.background.add_task(original_tasks)
-                response.background.add_task(task)
-            else:
-                response.background = task
-            
-            return response
+        try:
+            await self.app(scope, receive, send_wrapper)
+        finally:
+            duration = time.perf_counter() - start
+            log_event(f'HTTP \033[33m{request.method}\033[0m {request.url.path}', request=request, http_status=status_code, response_time=round(duration, 4))
+            if duration > 7.0:
+                log_event(f'Долгий ответ | {duration: .4f}', request=request, level='WARNING')
 
 
 class AuthUXASGIMiddleware:
@@ -100,11 +54,8 @@ class AuthUXASGIMiddleware:
             return
 
         request = Request(scope, receive=receive)
+        now = datetime.now(UTC)
 
-        now = datetime.utcnow()
-        ip = get_client_ip(request)
-
-        request.state.client_ip = ip
         request.state.role = 'student'
         request.state.user_id = 1
         request.state.session_id = '1'

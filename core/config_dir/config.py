@@ -83,6 +83,7 @@ class Settings(BaseSettings):
     es_init: bool
     allowed_ips: set[str] = {"172.18.0.1", "127.0.0.1"}
     trusted_proxies: set[str] =  {'127.0.0.1', '172.18.0.1'}
+    domain: str
 
     model_config = SettingsConfigDict(extra='allow')
 

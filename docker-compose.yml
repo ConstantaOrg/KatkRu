@@ -140,6 +140,9 @@ services:
     volumes:
       - pg_data:/var/lib/postgresql/data
       - ./secrets/${DUMPS_DIR}:/docker-entrypoint-initdb.d
+    # внешний | внутренний
+    ports:
+      - "127.0.0.1:5431:5432"
     networks:
       net_con:
 

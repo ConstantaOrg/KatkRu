@@ -34,7 +34,7 @@ class ResourceMonitor:
         
         log_event(
             f"Загруженность сервера: CPU {cpu}%, RAM {mem['percent']}%",
-            extra={
+            **{
                 'cpu_percent': cpu,
                 'memory_percent': mem['percent'],
                 'memory_used_mb': mem['used_mb'],

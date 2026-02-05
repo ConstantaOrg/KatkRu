@@ -178,6 +178,5 @@ test_output/
 examples/
 filebeat_debug_commands.md
 docs_generator/
-grafana/provisioning/dashboards/*.json
 dev_docs/
 metrics_endpoint.py
