@@ -1,0 +1,9 @@
+FROM openresty/openresty:1.21.4.2-alpine as builder
+
+
+FROM openresty/openresty:1.21.4.2-alpine
+
+RUN rm /usr/local/openresty/nginx/conf/conf.d/default.conf
+
+COPY nginx.conf /usr/local/openresty/nginx/conf/nginx.conf
+COPY prod_pied_market.conf /usr/local/openresty/nginx/conf/conf.d/
