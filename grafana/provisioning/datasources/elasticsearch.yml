@@ -1,0 +1,43 @@
+apiVersion: 1
+
+datasources:
+  - name: Elasticsearch-Logs
+    type: elasticsearch
+    access: proxy
+    url: http://es01:9200
+    jsonData:
+      index: "applogsindex-*"
+      timeField: "@timestamp"
+      esVersion: "8.0.0"
+      logMessageField: "message"
+      logLevelField: "level"
+      maxConcurrentShardRequests: 5
+      includeFrozen: false
+      tlsSkipVerify: true
+    isDefault: true
+    editable: true
+
+# Создаем роль для мониторинга логов
+#curl -X POST "localhost:9200/_security/role/logs_reader" \
+#  -H "Content-Type: application/json" \
+#  -u "elastic:${ELASTIC_PASSWORD}" \
+#  -d '{
+#    "indices": [
+#      {
+#        "names": ["app-logs*"],
+#        "privileges": ["read", "view_index_metadata"]
+#      }
+#    ]
+#  }'
+#
+## Создаем пользователя для Grafana
+#curl -X POST "localhost:9200/_security/user/grafana_user" \
+#  -H "Content-Type: application/json" \
+#  -u "elastic:${ELASTIC_PASSWORD}" \
+#  -d '{
+#    "password": "grafana_password_123",
+#    "roles": ["logs_reader"],
+#    "full_name": "Grafana Monitoring User"
+#  }'
+#
+#echo "Пользователь grafana_user создан с паролем: grafana_password_123"

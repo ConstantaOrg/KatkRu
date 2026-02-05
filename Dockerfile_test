@@ -1,8 +1,5 @@
 FROM python:3.12-slim as builder
 
-
-RUN groupadd -r appuser && useradd -r -g appuser appuser
-
 COPY requirements.txt .
 RUN pip3 install --no-cache-dir --user -r requirements.txt
 

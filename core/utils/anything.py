@@ -98,9 +98,6 @@ def hide_log_param(param, start=3, end=8):
 def create_log_dirs():
     LOG_DIR = Path('logs')
     LOG_DIR.mkdir(exist_ok=True)
-    (LOG_DIR / 'info_warning_error').mkdir(exist_ok=True, parents=True)
-    (LOG_DIR / 'critical').mkdir(exist_ok=True, parents=True)
-    (LOG_DIR / 'debug').mkdir(exist_ok=True, parents=True)
 
 def get_client_ip(request: Request | WebSocket):
     "Доверяем заголовку от клиента, в тестах маст-хев"  # proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;

@@ -1,0 +1,108 @@
+# Оптимизированная конфигурация Filebeat для FastAPI логов
+setup.ilm.enabled: false
+setup.template.enabled: true
+setup.template.name: "applogs"
+setup.template.pattern: "applogs-*"
+
+setup.kibana:
+  host: ${KIBANA_HOST}
+
+# Input для JSON логов с ротацией
+filebeat.inputs:
+- type: filestream
+  id: app-logs-json
+  enabled: true
+  paths:
+    - /app/logs/app.log*
+  
+  # Парсим JSON логи
+  parsers:
+    - ndjson:
+        keys_under_root: true
+        add_error_key: true
+        overwrite_keys: true  # Перезаписываем дубликаты полей
+  
+  # Метаданные
+  fields:
+    service: "fastapi-app"
+  fields_under_root: true
+  
+  # Оптимизация чтения файлов
+  close_inactive: 5m  # Закрываем неактивные файлы через 5 минут
+  clean_inactive: 24h  # Очищаем метаданные старых файлов через 24 часа
+  ignore_older: 48h   # Игнорируем файлы старше 48 часов
+  
+  # Производительность
+  backoff: 1s         # Задержка при отсутствии новых данных
+  max_backoff: 10s    # Максимальная задержка
+  scan_frequency: 10s # Частота сканирования новых файлов
+
+# Оптимизированные процессоры
+processors:
+  # 1. Удаляем служебные поля Filebeat для экономии места
+  - drop_fields:
+      fields: [
+        "agent.ephemeral_id", "agent.id", "agent.name", "agent.type", "agent.version",
+        "ecs.version", 
+        "host.architecture", "host.containerized", "host.hostname", "host.id", 
+        "host.mac", "host.name", "host.os", "host.geo",
+        "input.type",
+        "log.file.device_id", "log.file.fingerprint", "log.file.inode", "log.file.path",
+        "log.offset"
+      ]
+      ignore_missing: true
+  
+  # 2. Добавляем метку для фильтрации в Elasticsearch
+  - add_tags:
+      tags: ["fastapi", "application-logs"]
+      when:
+        has_fields: ["service"]
+  
+  # 3. Обрабатываем ошибки парсинга JSON
+  - rename:
+      fields:
+        - from: "error.message"
+          to: "json_parse_error"
+      ignore_missing: true
+      fail_on_error: false
+
+# Вывод в Elasticsearch с оптимизацией
+output.elasticsearch:
+  hosts: ["${ELASTICSEARCH_HOSTS}"]
+  index: "applogsindex-000001"
+  
+  # Производительность
+  bulk_max_size: 100      # Увеличено с 50 до 100 для лучшей пропускной способности
+  worker: 2               # Увеличено с 1 до 2 для параллельной отправки
+  compression_level: 1    # Легкое сжатие для баланса CPU/Network
+  
+  # Retry логика
+  max_retries: 3
+  backoff.init: 1s
+  backoff.max: 60s
+  
+  # Timeout
+  timeout: 90
+  
+  # Template настройки
+  template.enabled: false
+
+# Логирование
+logging.level: info
+logging.to_files: false
+logging.to_stderr: true
+logging.metrics.enabled: true  # Включаем метрики для мониторинга
+logging.metrics.period: 30s    # Метрики каждые 30 секунд
+
+# Оптимизированная очередь в памяти
+queue.mem:
+  events: 2048            # Увеличено с 1024 до 2048
+  flush.min_events: 512   # Увеличено с 10 до 512 для батчинга
+  flush.timeout: 5s       # Увеличено с 1s до 5s для лучшего батчинга
+
+# Мониторинг производительности Filebeat
+monitoring:
+  enabled: false  # Отключено, так как используем внешний мониторинг
+  
+# Ограничение использования ресурсов
+max_procs: 2  # Максимум 2 CPU ядра

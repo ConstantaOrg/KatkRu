@@ -10,6 +10,7 @@ from core.schemas.n8n_ui.teachers_schema import TeachersAddSchema, TeachersUpdat
 from core.schemas.schemas2depends import TeachersPagenSchema
 from core.utils.anything import Roles
 from core.utils.lite_dependencies import role_require
+from core.utils.logger import log_event
 from core.utils.response_model_utils import (
     TeachersAddSuccessResponse, TeachersAddConflictResponse,
     create_teachers_add_response, create_response_json
@@ -18,7 +19,7 @@ from core.utils.response_model_utils import (
 router = APIRouter(prefix='/private/teachers', tags=['Teachers👨‍🏫'])
 
 
-@router.get('/get', dependencies=[Depends(role_require(Roles.methodist, Roles.read_all))], response_model=TeachersGetResponse)
+@router.post('/get', dependencies=[Depends(role_require(Roles.methodist, Roles.read_all))], response_model=TeachersGetResponse)
 async def get_teachers(pagen: TeachersPagenSchema, db: PgSqlDep, request: Request, _: JWTCookieDep):
     teachers = await db.teachers.get_all(pagen.limit, pagen.offset)
     log_event(f"Отобразили Учителей | user_id: \033[31m{request.state.user_id}\033[0m", request=request)
@@ -40,12 +41,10 @@ async def add_teacher(body: TeachersAddSchema, db: PgSqlDep, request: Request, _
     if not teacher_id:
         log_event(f'Не удалось добавить учителя | user_id: \033[31m{request.state.user_id}\033[0m | fio: \033[34m{body.fio}\033[0m',
             request=request, level='WARNING')
-        # Use @overload function for type-safe conflict response
         response = create_teachers_add_response(success=False)
         return create_response_json(response, status_code=409)
 
     log_event(f'Обновили статусы группам | user_id: \033[31m{request.state.user_id}\033[0m | fio, teacher_id: \033[34m{body.fio}, {teacher_id}\033[0m', request=request)
-    # Use @overload function for type-safe success response
     response = create_teachers_add_response(success=True, teacher_id=teacher_id)
     return create_response_json(response, status_code=200)
 

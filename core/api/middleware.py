@@ -1,10 +1,8 @@
 import time
-from datetime import datetime
-from typing import Callable
+from datetime import datetime, UTC
 
-from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
-from starlette.responses import Response, JSONResponse
+from starlette.responses import JSONResponse
 from starlette.types import ASGIApp, Send, Receive, Scope
 
 from core.config_dir.config import env
@@ -14,17 +12,36 @@ from core.utils.jwt_factory import get_jwt_decode_payload, reissue_aT
 from core.utils.logger import log_event
 
 
-class LoggingTimeMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next: Callable) -> Response:
+class ASGILoggingMiddleware:
+    def __init__(self, app: ASGIApp):
+        self.app = app
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send):
+        if scope['type'] not in {'http', 'websocket'}:
+            await self.app(scope, receive, send)
+            return
+
+        request = Request(scope, receive=receive)
+        
         ip = get_client_ip(request)
         request.state.client_ip = ip
-
+        
         start = time.perf_counter()
-        response = await call_next(request)
-        end = time.perf_counter() - start
-        if end > 7.0:
-            log_event(f'Долгий ответ | {end: .4f}', request=request, level='WARNING')
-        return response
+        status_code = 500  # По умолчанию, если что-то пойдет не так
+        
+        async def send_wrapper(message):
+            nonlocal status_code
+            if message['type'] == 'http.response.start':
+                status_code = message['status']
+            await send(message)
+        
+        try:
+            await self.app(scope, receive, send_wrapper)
+        finally:
+            duration = time.perf_counter() - start
+            log_event(f'HTTP \033[33m{request.method}\033[0m {request.url.path}', request=request, http_status=status_code, response_time=round(duration, 4))
+            if duration > 7.0:
+                log_event(f'Долгий ответ | {duration: .4f}', request=request, level='WARNING')
 
 
 class AuthUXASGIMiddleware:
@@ -37,11 +54,8 @@ class AuthUXASGIMiddleware:
             return
 
         request = Request(scope, receive=receive)
+        now = datetime.now(UTC)
 
-        now = datetime.utcnow()
-        ip = get_client_ip(request)
-
-        request.state.client_ip = ip
         request.state.role = 'student'
         request.state.user_id = 1
         request.state.session_id = '1'

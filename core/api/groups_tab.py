@@ -20,7 +20,7 @@ from core.utils.response_model_utils import (
 router = APIRouter(prefix='/private/groups', tags=['Groups👥👥👥'])
 
 
-@router.get('/get', response_model=GroupsGetResponse, dependencies=[Depends(role_require(Roles.methodist, Roles.read_all))])
+@router.post('/get', response_model=GroupsGetResponse, dependencies=[Depends(role_require(Roles.methodist, Roles.read_all))])
 async def get_groups(building_id: Annotated[int, Query(alias='bid')], pagen: GroupPagenDep, db: PgSqlDep, request: Request, _: JWTCookieDep):
     groups = await db.groups.get_all(building_id, pagen.limit, pagen.offset)
     log_event(f"Отобразили группы | user_id: \033[31m{request.state.user_id}\033[0m", request=request)
@@ -42,12 +42,10 @@ async def add_group(body: GroupAddSchema, db: PgSqlDep, request: Request, _: JWT
     if not group_id:
         log_event(f'Не удалось создать группу | user_id: \033[31m{request.state.user_id}\033[0m | group_name: \033[34m{body.group_name}\033[0m',
             request=request, level='WARNING')
-        # Use @overload function for type-safe conflict response
         response = create_groups_add_response(success=False)
         return create_response_json(response, status_code=409)
 
     log_event(f'Обновили статусы группам | user_id: \033[31m{request.state.user_id}\033[0m | group_name, group_id: \033[34m{body.group_name}, {group_id}\033[0m', request=request)
-    # Use @overload function for type-safe success response
     response = create_groups_add_response(success=True, group_id=group_id)
     return create_response_json(response, status_code=200)
 
