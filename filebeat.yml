@@ -28,61 +28,70 @@ filebeat.inputs:
   fields_under_root: true
   
   # Оптимизация чтения файлов
-  close_inactive: 5m  # Закрываем неактивные файлы через 5 минут
-  clean_inactive: 24h  # Очищаем метаданные старых файлов через 24 часа
-  ignore_older: 48h   # Игнорируем файлы старше 48 часов
+  close:
+    inactive: 5m          # Закрываем неактивные файлы через 5 минут
+  clean_inactive: 24h     # Очищаем метаданные старых файлов через 24 часа
+  ignore_older: 48h       # Игнорируем файлы старше 48 часов
   
-  # Производительность
-  backoff: 1s         # Задержка при отсутствии новых данных
-  max_backoff: 10s    # Максимальная задержка
-  scan_frequency: 10s # Частота сканирования новых файлов
+  # Производительность чтения
+  backoff:
+    init: 1s              # Начальная задержка при отсутствии данных
+    max: 10s              # Максимальная задержка
+  
+  # Частота проверки новых файлов
+  prospector:
+    scanner:
+      check_interval: 10s # Проверяем новые файлы каждые 10 секунд
 
 # Оптимизированные процессоры
 processors:
-  # 1. Удаляем служебные поля Filebeat для экономии места
-  - drop_fields:
-      fields: [
-        "agent.ephemeral_id", "agent.id", "agent.name", "agent.type", "agent.version",
-        "ecs.version", 
-        "host.architecture", "host.containerized", "host.hostname", "host.id", 
-        "host.mac", "host.name", "host.os", "host.geo",
-        "input.type",
-        "log.file.device_id", "log.file.fingerprint", "log.file.inode", "log.file.path",
-        "log.offset"
-      ]
-      ignore_missing: true
-  
-  # 2. Добавляем метку для фильтрации в Elasticsearch
-  - add_tags:
-      tags: ["fastapi", "application-logs"]
-      when:
-        has_fields: ["service"]
-  
-  # 3. Обрабатываем ошибки парсинга JSON
+  # 1. Обрабатываем ошибки парсинга JSON (делаем это первым)
   - rename:
       fields:
         - from: "error.message"
           to: "json_parse_error"
       ignore_missing: true
       fail_on_error: false
+  
+  # 2. Удаляем ЦЕЛЫЕ объекты служебных полей Filebeat для экономии места
+  - drop_fields:
+      fields: [
+        "agent",      # Удаляем весь объект agent
+        "ecs",        # Удаляем весь объект ecs
+        "host",       # Удаляем весь объект host
+        "input",      # Удаляем весь объект input
+        "log",        # Удаляем весь объект log
+        "error"       # Удаляем объект error (после переименования error.message)
+      ]
+      ignore_missing: true
+  
+  # 3. Добавляем метку для фильтрации в Elasticsearch
+  - add_tags:
+      tags: ["fastapi", "application-logs"]
+      when:
+        has_fields: ["service"]
 
 # Вывод в Elasticsearch с оптимизацией
 output.elasticsearch:
   hosts: ["${ELASTICSEARCH_HOSTS}"]
-  index: "applogsindex-000001"
+  
+  index: "applogs"
   
   # Производительность
-  bulk_max_size: 100      # Увеличено с 50 до 100 для лучшей пропускной способности
+  bulk_max_size: 100
   worker: 2               # Увеличено с 1 до 2 для параллельной отправки
   compression_level: 1    # Легкое сжатие для баланса CPU/Network
   
-  # Retry логика
+  # Retry политика
   max_retries: 3
   backoff.init: 1s
   backoff.max: 60s
   
   # Timeout
   timeout: 90
+  
+  # ILM настройки
+  ilm.enabled: false      # ILM управляется на стороне Elasticsearch
   
   # Template настройки
   template.enabled: false
@@ -96,9 +105,9 @@ logging.metrics.period: 30s    # Метрики каждые 30 секунд
 
 # Оптимизированная очередь в памяти
 queue.mem:
-  events: 2048            # Увеличено с 1024 до 2048
-  flush.min_events: 512   # Увеличено с 10 до 512 для батчинга
-  flush.timeout: 5s       # Увеличено с 1s до 5s для лучшего батчинга
+  events: 2048
+  flush.min_events: 512
+  flush.timeout: 5s
 
 # Мониторинг производительности Filebeat
 monitoring:

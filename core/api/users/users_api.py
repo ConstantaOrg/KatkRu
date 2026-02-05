@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Response, Request, HTTPException
+from fastapi import APIRouter, Response, Request
 
 from core.api.users.rate_limiter import rate_limit
 from core.data.postgre import PgSqlDep
@@ -27,12 +27,10 @@ async def registration_user(creds: UserRegSchema, db: PgSqlDep, request: Request
 
     if not insert_attempt:
         log_event(f"Пользователь с email: {hide_log_param(creds.email)} Уже существует", request=request, level='WARNING')
-        # Use @overload function for type-safe conflict response
         response = create_user_registration_response(success=False)
         return create_response_json(response, status_code=409)
 
     log_event(f"Новый пользователь! email: {hide_log_param(creds.email)}", request=request)
-    # Use @overload function for type-safe success response
     response = create_user_registration_response(success=True)
     return create_response_json(response, status_code=200)
 
@@ -54,15 +52,17 @@ async def log_in(creds: UserLogInSchema, response: Response, db: PgSqlDep, reque
         )
         access_token, refresh_token = await issue_aT_rT(db, token_schema)
 
-        response.set_cookie('access_token', access_token, **AccToken().model_dump())
-        response.set_cookie('refresh_token', refresh_token, **RtToken().model_dump())
         log_event("Пользователь Вошёл в акк | user_id: %s", db_user['id'], request=request)
-        # Use @overload function for type-safe success response
         login_response = create_user_login_response(success=True)
-        return create_response_json(login_response, status_code=200)
+        json_response = create_response_json(login_response, status_code=200)
+        
+        "Ставим куки"
+        json_response.set_cookie('access_token', access_token, **AccToken().model_dump())
+        json_response.set_cookie('refresh_token', refresh_token, **RtToken().model_dump())
+        
+        return json_response
     
     log_event(f"Пользователь с email: {hide_log_param(creds.email)} Не смог войти", request=request, level='WARNING')
-    # Use @overload function for type-safe unauthorized response
     login_response = create_user_login_response(success=False)
     return create_response_json(login_response, status_code=401)
 

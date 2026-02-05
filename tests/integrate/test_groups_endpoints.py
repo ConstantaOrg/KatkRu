@@ -10,7 +10,7 @@ async def test_groups_get(client, seed_info):
     validator = APIResponseValidator(strict_mode=False)
     validator.add_rule(ValidationRule("groups", list, required=True))
     
-    resp = await client.get(
+    resp = await client.post(
         "/api/v1/private/groups/get",
         params={"bid": seed_info["building_id"], "limit": 10, "offset": 0},
     )

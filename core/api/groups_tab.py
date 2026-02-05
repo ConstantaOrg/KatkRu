@@ -45,7 +45,7 @@ async def add_group(body: GroupAddSchema, db: PgSqlDep, request: Request, _: JWT
         response = create_groups_add_response(success=False)
         return create_response_json(response, status_code=409)
 
-    log_event(f'Обновили статусы группам | user_id: \033[31m{request.state.user_id}\033[0m | group_name, group_id: \033[34m{body.group_name}, {group_id}\033[0m', request=request)
+    log_event(f'Добавлена группа | user_id: \033[31m{request.state.user_id}\033[0m | group_name, group_id: \033[34m{body.group_name}, {group_id}\033[0m', request=request)
     response = create_groups_add_response(success=True, group_id=group_id)
     return create_response_json(response, status_code=200)
 

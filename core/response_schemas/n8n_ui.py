@@ -3,7 +3,7 @@ Response схемы для n8n_ui endpoints.
 Соответствует core/api/n8n_ui.py
 """
 
-from typing import List, Dict, Any, Union, Optional
+from typing import List, Any
 from pydantic import BaseModel, Field
 
 from . import BaseResponse, SuccessResponse, SuccessWithIdResponse

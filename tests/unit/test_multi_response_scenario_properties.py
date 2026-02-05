@@ -109,7 +109,7 @@ def ttable_precommit_data(draw):
     else:
         return {
             'success': False,
-            'needed_groups': draw(st.lists(st.text(min_size=1, max_size=20), min_size=1, max_size=10)),
+            'needed_groups': draw(st.lists(st.integers(min_value=1, max_value=10000), min_size=1, max_size=10)),
             'ttable_id': draw(st.integers(min_value=1, max_value=10000)),
             'message': draw(st.text(min_size=1, max_size=100))
         }

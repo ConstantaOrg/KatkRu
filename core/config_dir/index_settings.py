@@ -178,7 +178,7 @@ class LogIndex:
                         "rollover": {
                             "max_size": "1GB",
                             "max_age": "7d",
-                            "max_docs": 1000000
+                            "max_docs": 1_000_000
                         },
                         "set_priority": {
                             "priority": 100
@@ -223,7 +223,7 @@ class LogIndex:
         "number_of_shards": 2,
         "number_of_replicas": 0,
         "refresh_interval": "30s",
-        "index.mapping.total_fields.limit": 30,
+        "index.mapping.total_fields.limit": 500,
         "index.codec": "best_compression",
         "analysis": {
             "analyzer": {

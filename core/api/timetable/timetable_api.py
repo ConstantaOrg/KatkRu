@@ -36,5 +36,5 @@ async def upload_ttable_file(
 
 @router.post("/public/timetable/get", response_model=TimetableGetResponse)
 async def get_ttable_doc(body: ScheduleFilterSchema, db: PgSqlDep):
-    schedule = await db.ttable.get_ttable(body.building_id, body.group, body.date_start, body.date_end)
+    schedule = await db.ttable.get_ttable(body.group, body.date_field)
     return {"schedule": [dict(item) for item in schedule]}

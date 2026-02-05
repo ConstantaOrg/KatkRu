@@ -61,8 +61,8 @@ async def test_pre_commit_missing_groups(client, pg_pool):
             "INSERT INTO groups (name, building_id, is_active) VALUES ('GR11', $1, true) RETURNING id",
             b_id,
         )
-        await conn.execute(
-            "INSERT INTO groups (name, building_id, is_active) VALUES ('GR12', $1, true)",
+        g2_id = await conn.fetchval(
+            "INSERT INTO groups (name, building_id, is_active) VALUES ('GR12', $1, true) RETURNING id",
             b_id,
         )
         ttv_id = await conn.fetchval(
@@ -94,6 +94,11 @@ async def test_pre_commit_missing_groups(client, pg_pool):
     assert resp.status_code == 409
     data = resp.json()
     assert "needed_groups" in data
+    assert isinstance(data["needed_groups"], list)
+    assert len(data["needed_groups"]) == 1
+    assert g2_id in data["needed_groups"]  # g2 is missing from the version
+    assert data["success"] is False
+    assert data["ttable_id"] == ttv_id
 
 
 @pytest.mark.asyncio

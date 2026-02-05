@@ -39,7 +39,10 @@ class ASGILoggingMiddleware:
             await self.app(scope, receive, send_wrapper)
         finally:
             duration = time.perf_counter() - start
-            log_event(f'HTTP \033[33m{request.method}\033[0m {request.url.path}', request=request, http_status=status_code, response_time=round(duration, 4))
+
+            "Логируем для мониторинга"
+            if env.app_mode != 'local':
+                log_event(f'HTTP \033[33m{request.method}\033[0m {request.url.path}', request=request, http_status=status_code, response_time=round(duration, 4))
             if duration > 7.0:
                 log_event(f'Долгий ответ | {duration: .4f}', request=request, level='WARNING')
 
@@ -81,7 +84,7 @@ class AuthUXASGIMiddleware:
             await response(scope, receive, send)
             return
 
-        if datetime.utcfromtimestamp(access_token['exp']) < now:
+        if datetime.fromtimestamp(access_token['exp'], tz=UTC) < now:
             # аксес_токен ИСТЁК
             "процесс выпуска токена"
             async with request.app.state.pg_pool.acquire() as conn:

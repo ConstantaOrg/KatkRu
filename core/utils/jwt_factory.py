@@ -1,5 +1,5 @@
 import secrets
-from datetime import datetime
+from datetime import datetime, UTC
 from uuid import uuid4
 
 import jwt
@@ -42,8 +42,9 @@ def get_jwt_decode_payload(encoded_jwt: str, public_key: str | None=None, verify
 
 
 def add_ttl_limit(data: dict, token_ttl: str):
-    created_at = datetime.utcnow()
-
+    created_at = datetime.now(UTC)
+    # created_at = datetime.utcnow()
+    
     ttl = env.JWTs.ttl_aT
     if token_types[token_ttl] == TokenTypes.refresh_token:
         ttl = env.JWTs.ttl_rT

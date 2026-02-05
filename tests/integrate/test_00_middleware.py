@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, timezone
 from fastapi import FastAPI, Response
 from starlette.requests import Request
 
-from core.api.middleware import AuthUXASGIMiddleware
+from core.api.middleware import AuthUXASGIMiddleware, ASGILoggingMiddleware
 from core.config_dir.config import env
 from core.schemas.cookie_settings_schema import JWTCookieDep
 
@@ -57,10 +57,11 @@ async def mw_client(pg_pool, seed_info, monkeypatch):
         return {"ok": True, "set_cookie": set_cookie}
 
     app.add_middleware(AuthUXASGIMiddleware)
+    app.add_middleware(ASGILoggingMiddleware)
     app.state.pg_pool = pg_pool
 
     async with pg_pool.acquire() as conn:
-        now_dt = datetime.utcnow()
+        now_dt = datetime.now(timezone.utc).replace(tzinfo=None)
         exp_dt = now_dt + timedelta(hours=1)
         await conn.execute(
             """

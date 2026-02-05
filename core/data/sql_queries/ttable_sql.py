@@ -1,5 +1,4 @@
 import datetime
-from types import NoneType
 
 from asyncpg import Connection
 
@@ -12,34 +11,20 @@ class TimetableQueries:
     def __init__(self, conn: Connection):
         self.conn = conn
 
-    async def get_ttable(self, building_id: int, group: str | list[str] | None, date_start, date_end):
-        date_filter = 't_v.schedule_date BETWEEN $4 AND $5'
-        date_args = (date_start, date_end)
-        if not date_end:
-            date_filter = 't_v.schedule_date = $4'
-            date_args = (date_start,)
-
-        group_filter = 'AND csh.group_id = (SELECT g.id FROM groups g WHERE g.is_active = true AND g.name = $2)'
-        if not isinstance(group, str):
-            "Если указано несколько групп"
-            group_filter = 'AND csh.group_id IN (SELECT g.id FROM groups g WHERE g.is_active = true AND g.name = ANY($2))'
-            if isinstance(group, NoneType):
-                group_filter = ''
-
+    async def get_ttable(self, group: str | list[str] | None, date):
         query = f'''
         SELECT csd.position, dp.title, t.fio, csd.aud FROM cards_states_details csd 
         JOIN disciplines dp ON dp.id = csd.discipline_id
         JOIN teachers t ON t.id = csd.teacher_id
         WHERE csd.card_hist_id IN (
             SELECT csd.id FROM cards_states_history csh
-            JOIN ttable_versions t_v ON t_v.id = csh.sched_ver_id AND t_v.status_id = $3
-            WHERE t_v.building_id = $1
-               AND csh.is_current = true
-            {group_filter}
-            AND {date_filter}
+            JOIN ttable_versions t_v ON t_v.id = csh.sched_ver_id AND t_v.status_id = $2
+            WHERE csh.is_current = true
+              AND csh.group_id = (SELECT g.id FROM groups g WHERE g.is_active = true AND g.name = $1) 
+              AND t_v.schedule_date = $3
         )
         '''
-        res = await self.conn.fetch(query, building_id, group, TimetableVerStatuses.accepted, *date_args)
+        res = await self.conn.fetch(query, group, TimetableVerStatuses.accepted, date)
         return res
 
     async def teacher_ids(self):
@@ -90,7 +75,7 @@ class TimetableQueries:
         return res['id']
 
     async def base_groups(self, building_id: int):
-        query = 'SELECT id, name FROM groups WHERE is_active = true AND building_id = $1'
+        query = 'SELECT id FROM groups WHERE is_active = true AND building_id = $1'
         res = await self.conn.fetch(query, building_id)
         return res
 
@@ -128,17 +113,13 @@ class TimetableQueries:
         await self.conn.execute('BEGIN ISOLATION LEVEL REPEATABLE READ')
         building_id = await self.conn.fetchval('SELECT building_id FROM ttable_versions WHERE id = $1', sched_ver_id)
 
-        base_groups_data = await self.base_groups(building_id)
-        base_groups_ids = {rec['id'] for rec in base_groups_data}
-        base_groups_names = {rec['id']: rec['name'] for rec in base_groups_data}
+        base_groups = {rec['id'] for rec in (await self.base_groups(building_id))}
         ttable_ver_groups = {rec['group_id'] for rec in (await self.ttable_ver_groups(sched_ver_id))}
 
         'Не все группы в версии расписания "готовы"'
-        if remains_groups_ids:=(base_groups_ids - ttable_ver_groups):
+        if remains_groups:=(base_groups - ttable_ver_groups):
             await self.conn.execute('ROLLBACK')
-            # Convert group IDs to group names for the response
-            needed_group_names = [base_groups_names[group_id] for group_id in remains_groups_ids]
-            return 409, {"message": f"Недостаточно групп в Расписании", "needed_groups": needed_group_names, "ttable_id": sched_ver_id}
+            return 409, {"message": "Недостаточно групп в Расписании", "needed_groups": list(remains_groups), "ttable_id": sched_ver_id}
 
         res_switch = await self.pre_commit_version(sched_ver_id)
         await self.conn.execute('COMMIT')

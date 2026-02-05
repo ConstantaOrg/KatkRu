@@ -2,7 +2,6 @@ from typing import Annotated, Union
 
 from fastapi import APIRouter, Depends, Query, Body
 from starlette.requests import Request
-import json
 
 from core.data.postgre import PgSqlDep
 from core.response_schemas.n8n_ui import (
@@ -11,7 +10,7 @@ from core.response_schemas.n8n_ui import (
     CardsHistoryResponse, CardsContentResponse, CardsAcceptResponse
 )
 from core.utils.response_model_utils import (
-    CardsSaveResponse, CardsSaveSuccessResponse, CardsSaveConflictResponse,
+    CardsSaveSuccessResponse, CardsSaveConflictResponse,
     create_cards_save_response, create_response_json
 )
 from core.schemas.cookie_settings_schema import JWTCookieDep
@@ -80,7 +79,6 @@ async def save_card(body: SaveCardSchema, db: PgSqlDep, request: Request, _: JWT
             f"Сохранение карточки Успешно! | new_card_hist_id: \033[31m{new_card_hist_id}\033[0m; old_card_hist_id: \033[32m{body.card_hist_id}\033[0m; sched_ver_id: \033[35m{body.ttable_id}\033[0m; user_id: \033[33m{request.state.user_id}\033[0m",
             request=request
         )
-        # Use @overload function for type-safe success response
         response = create_cards_save_response(
             success=True,
             new_card_hist_id=new_card_hist_id
@@ -89,9 +87,8 @@ async def save_card(body: SaveCardSchema, db: PgSqlDep, request: Request, _: JWT
 
     log_event(
         f"Конфликты при сохранении карточки | conflicts: \033[31m{new_card_hist_id}\033[0m; old_card_hist_id: \033[32m{body.card_hist_id}\033[0m; sched_ver_id: \033[35m{body.ttable_id}\033[0m; user_id: \033[33m{request.state.user_id}\033[0m",
-        request=request,  level='WARNING'
+        request=request, level='WARNING'
     )
-    # Use @overload function for type-safe conflict response
     response = create_cards_save_response(
         success=False,
         conflicts=new_card_hist_id,

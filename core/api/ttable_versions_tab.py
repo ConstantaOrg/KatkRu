@@ -1,10 +1,9 @@
 from fastapi import APIRouter, Depends
-from starlette.responses import JSONResponse
 
 from core.data.postgre import PgSqlDep
 from core.response_schemas.ttable_versions_tab import TtableVersionsCommitResponse
 from core.utils.response_model_utils import (
-    TtableVersionsPreCommitResponse, TtableVersionsPreCommitSuccessResponse, TtableVersionsPreCommitConflictResponse,
+    TtableVersionsPreCommitSuccessResponse, TtableVersionsPreCommitConflictResponse,
     create_ttable_precommit_response, create_response_json
 )
 from core.schemas.cookie_settings_schema import JWTCookieDep
@@ -23,11 +22,9 @@ async def accept_ttable_version(body: PreAcceptTimetableSchema, db: PgSqlDep, _:
     updating = await db.ttable.check_accept_constraints(body.ttable_id)
     
     if not updating:
-        # Success case - use @overload function for type-safe response
         response = create_ttable_precommit_response(success=True)
         return create_response_json(response, status_code=200)
     
-    # Conflict case - use @overload function for type-safe response
     status_code, error_data = updating
     response = create_ttable_precommit_response(
         success=False,

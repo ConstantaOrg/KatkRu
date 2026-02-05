@@ -22,7 +22,7 @@ router = APIRouter(prefix='/private/disciplines', tags=['Disciplines📚'])
 @router.post('/get', dependencies=[Depends(role_require(Roles.methodist, Roles.read_all))], response_model=DisciplinesGetResponse)
 async def get_disciplines(pagen: DisciplinesPagenSchema, db: PgSqlDep, request: Request, _: JWTCookieDep):
     disciplines = await db.disciplines.get_all(pagen.limit, pagen.offset)
-    log_event(f"Отобразили Учителей | user_id: \033[31m{request.state.user_id}\033[0m", request=request)
+    log_event(f"Отобразили Дисциплины | user_id: \033[31m{request.state.user_id}\033[0m", request=request)
     return {'disciplines': [dict(discipline) for discipline in disciplines]}
 
 @router.put('/update', dependencies=[Depends(role_require(Roles.methodist))], response_model=DisciplinesUpdateResponse)

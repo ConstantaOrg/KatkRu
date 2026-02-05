@@ -6,7 +6,7 @@ Response схемы для specialties endpoints.
 from typing import List, Dict, Any, Optional
 from pydantic import Field
 
-from . import BaseResponse, ListResponse
+from . import BaseResponse
 
 
 class SpecialtiesAllResponse(BaseResponse):

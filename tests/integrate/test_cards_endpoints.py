@@ -29,7 +29,7 @@ def _build_simple_doc(path: Path, group_name: str, discipline: str, teacher: str
 
 @pytest.mark.asyncio
 async def test_healthcheck(client):
-    resp = await client.post("/api/v1/healthcheck")
+    resp = await client.get("/api/v1/healthcheck")
     assert resp.status_code == 200
     assert resp.json().get("status") == True
 

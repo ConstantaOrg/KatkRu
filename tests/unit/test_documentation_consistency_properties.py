@@ -67,7 +67,7 @@ def response_model_data(draw):
             "type": "ttable_precommit_conflict",
             "data": {
                 "needed_groups": draw(st.lists(
-                    st.text(min_size=3, max_size=10),
+                    st.integers(min_value=1, max_value=10000),
                     min_size=0, max_size=5
                 )),
                 "ttable_id": draw(st.integers(min_value=1, max_value=1000)),

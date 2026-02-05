@@ -5,7 +5,7 @@ Utility functions for creating clean @overload response models
 without inheritance-based field pollution.
 """
 
-from typing import overload, Union, Literal, List, Dict, Any, Type, Optional
+from typing import overload, Union, Literal, List, Dict, Any, Type, Optional, Tuple
 from pydantic import BaseModel, Field
 from fastapi.responses import JSONResponse
 
@@ -124,7 +124,7 @@ class TtableVersionsPreCommitConflictResponse(BaseModel):
     """Clean conflict response for ttable versions pre-commit."""
     success: Literal[False] = Field(False, description="Success flag")
     message: str = Field("Conflicts detected in timetable version", description="Error message")
-    needed_groups: List[str] = Field(default_factory=list, description="List of groups that need to be included")
+    needed_groups: List[int] = Field(default_factory=list, description="List of group IDs that need to be included")
     ttable_id: int = Field(..., description="ID of the timetable version")
     # Optional fields for 202 case (existing active version)
     cur_active_ver: Optional[int] = Field(None, description="ID of currently active version (202 case)")
@@ -159,7 +159,7 @@ def create_ttable_precommit_response(
 @overload
 def create_ttable_precommit_response(
     success: Literal[False],
-    needed_groups: List[str] = None,
+    needed_groups: List[int] = None,
     ttable_id: int = None,
     message: str = "Conflicts detected in timetable version",
     cur_active_ver: int = None,
@@ -169,7 +169,7 @@ def create_ttable_precommit_response(
 
 def create_ttable_precommit_response(
     success: bool,
-    needed_groups: List[str] = None,
+    needed_groups: List[str] | Tuple[str]= None,
     ttable_id: int = None,
     message: str = None,
     cur_active_ver: int = None,

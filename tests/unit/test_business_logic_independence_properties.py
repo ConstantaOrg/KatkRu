@@ -92,7 +92,7 @@ class TestBusinessLogicIndependenceProperties:
         ),
         business_logic_function=st.sampled_from([
             lambda resp: resp.get("success", False) is True,
-            lambda resp: resp.get("code", 500) < 400,
+            lambda resp: isinstance(resp.get("code", 500), int) and resp.get("code", 500) < 400,
             lambda resp: len(resp.get("data", [])) > 0 if isinstance(resp.get("data"), list) else True,
             lambda resp: resp.get("error") is None or resp.get("error") == "",
         ])

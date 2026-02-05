@@ -22,7 +22,7 @@ async def test_groups_endpoint_with_independent_validation(client, seed_info):
     showing how the framework breaks the circular dependency.
     """
     # Make actual API call
-    resp = await client.get(
+    resp = await client.post(
         "/api/v1/private/groups/get",
         params={"bid": seed_info["building_id"], "limit": 10, "offset": 0},
     )
@@ -140,7 +140,7 @@ async def test_framework_independence_demonstration(client, seed_info):
     might be updated or changed, as long as the actual API behavior remains consistent.
     """
     # Make API call
-    resp = await client.get(
+    resp = await client.post(
         "/api/v1/private/groups/get",
         params={"bid": seed_info["building_id"], "limit": 10, "offset": 0},
     )
