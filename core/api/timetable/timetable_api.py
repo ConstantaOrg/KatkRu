@@ -4,6 +4,7 @@ from fastapi import APIRouter, UploadFile, Query, Request
 
 from core.api.timetable.ttable_parser import std_ttable_doc_processer
 from core.data.postgre import PgSqlDep
+from core.response_schemas.timetable_api import TimetableImportResponse, TimetableGetResponse
 from core.schemas.cookie_settings_schema import JWTCookieDep
 from core.schemas.ttable_schema import ScheduleFilterSchema
 from core.utils.logger import log_event
@@ -11,7 +12,7 @@ from core.utils.logger import log_event
 router = APIRouter(tags=["Timetable📘"])
 
 
-@router.post("/private/timetable/standard/import")
+@router.post("/private/timetable/standard/import", response_model=TimetableImportResponse)
 async def upload_ttable_file(
         file_obj: UploadFile,
         semester: Annotated[Literal["1", "2"], Query(alias='smtr')],
@@ -33,7 +34,7 @@ async def upload_ttable_file(
     return {'success': True, 'message': 'Расписание сохранено', 'ttable_ver_id': inserted_ttable_id, 'status': 'В Ожидании'}
 
 
-@router.post("/public/timetable/get")
+@router.post("/public/timetable/get", response_model=TimetableGetResponse)
 async def get_ttable_doc(body: ScheduleFilterSchema, db: PgSqlDep):
-    schedule = await db.ttable.get_ttable(body.building_id, body.group, body.date_start, body.date_end)
-    return {"schedule": schedule}
+    schedule = await db.ttable.get_ttable(body.group, body.date_field)
+    return {"schedule": [dict(item) for item in schedule]}

@@ -1,0 +1,117 @@
+# Оптимизированная конфигурация Filebeat для FastAPI логов
+setup.ilm.enabled: false
+setup.template.enabled: true
+setup.template.name: "applogs"
+setup.template.pattern: "applogs-*"
+
+setup.kibana:
+  host: ${KIBANA_HOST}
+
+# Input для JSON логов с ротацией
+filebeat.inputs:
+- type: filestream
+  id: app-logs-json
+  enabled: true
+  paths:
+    - /app/logs/app.log*
+  
+  # Парсим JSON логи
+  parsers:
+    - ndjson:
+        keys_under_root: true
+        add_error_key: true
+        overwrite_keys: true  # Перезаписываем дубликаты полей
+  
+  # Метаданные
+  fields:
+    service: "fastapi-app"
+  fields_under_root: true
+  
+  # Оптимизация чтения файлов
+  close:
+    inactive: 5m          # Закрываем неактивные файлы через 5 минут
+  clean_inactive: 24h     # Очищаем метаданные старых файлов через 24 часа
+  ignore_older: 48h       # Игнорируем файлы старше 48 часов
+  
+  # Производительность чтения
+  backoff:
+    init: 1s              # Начальная задержка при отсутствии данных
+    max: 10s              # Максимальная задержка
+  
+  # Частота проверки новых файлов
+  prospector:
+    scanner:
+      check_interval: 10s # Проверяем новые файлы каждые 10 секунд
+
+# Оптимизированные процессоры
+processors:
+  # 1. Обрабатываем ошибки парсинга JSON (делаем это первым)
+  - rename:
+      fields:
+        - from: "error.message"
+          to: "json_parse_error"
+      ignore_missing: true
+      fail_on_error: false
+  
+  # 2. Удаляем ЦЕЛЫЕ объекты служебных полей Filebeat для экономии места
+  - drop_fields:
+      fields: [
+        "agent",      # Удаляем весь объект agent
+        "ecs",        # Удаляем весь объект ecs
+        "host",       # Удаляем весь объект host
+        "input",      # Удаляем весь объект input
+        "log",        # Удаляем весь объект log
+        "error"       # Удаляем объект error (после переименования error.message)
+      ]
+      ignore_missing: true
+  
+  # 3. Добавляем метку для фильтрации в Elasticsearch
+  - add_tags:
+      tags: ["fastapi", "application-logs"]
+      when:
+        has_fields: ["service"]
+
+# Вывод в Elasticsearch с оптимизацией
+output.elasticsearch:
+  hosts: ["${ELASTICSEARCH_HOSTS}"]
+  
+  index: "applogs"
+  
+  # Производительность
+  bulk_max_size: 100
+  worker: 2               # Увеличено с 1 до 2 для параллельной отправки
+  compression_level: 1    # Легкое сжатие для баланса CPU/Network
+  
+  # Retry политика
+  max_retries: 3
+  backoff.init: 1s
+  backoff.max: 60s
+  
+  # Timeout
+  timeout: 90
+  
+  # ILM настройки
+  ilm.enabled: false      # ILM управляется на стороне Elasticsearch
+  
+  # Template настройки
+  template.enabled: false
+
+# Логирование
+logging.level: info
+logging.to_files: false
+logging.to_stderr: true
+logging.metrics.enabled: true  # Включаем метрики для мониторинга
+logging.metrics.period: 30s    # Метрики каждые 30 секунд
+
+# Оптимизированная очередь в памяти
+queue.mem:
+  events: 2048
+  flush.min_events: 512
+  flush.timeout: 5s
+
+# Мониторинг производительности Filebeat
+monitoring:
+  enabled: false  # Отключено, так как используем внешний мониторинг
+  
+# Ограничение использования ресурсов
+max_procs: 2  # Максимум 2 CPU ядра

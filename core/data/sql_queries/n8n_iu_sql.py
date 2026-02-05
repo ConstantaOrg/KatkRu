@@ -110,7 +110,7 @@ class N8NIUQueries:
         res = await self.conn.fetch(query, card_hist_id)
         return res
 
-    async def save_card(self, card_hist_id: int, sched_ver_id: int, user_id: int, lessons_json: str):
+    async def save_card(self, card_hist_id: int, sched_ver_id: int, user_id: int, lessons):
         query = '''
         WITH switch_cur AS (
             UPDATE cards_states_history SET is_current = false WHERE id = $1
@@ -124,14 +124,23 @@ class N8NIUQueries:
         ),
         ins_details AS (
             INSERT INTO cards_states_details (card_hist_id, discipline_id, "position", aud, teacher_id, is_force, sched_ver_id)
-            SELECT i_h.new_hist_id, l.discipline_id, l.position, l.aud, l.teacher_id, l.is_force, $2
-            FROM jsonb_to_recordset($5::jsonb) AS l(position int, discipline_id int, teacher_id int, aud text, is_force bool)
-            CROSS JOIN ins_hist i_h
+            SELECT 
+                i_h.new_hist_id, UNNEST($5::int[]), UNNEST($6::int[]), UNNEST($7::text[]), UNNEST($8::int[]), UNNEST($9::bool[]), $2
+            FROM ins_hist i_h
         )
         SELECT new_hist_id AS id FROM ins_hist
         '''
+        discipline_ids = tuple(lesson.discipline_id for lesson in lessons)
+        positions = tuple(lesson.position for lesson in lessons)
+        auds = tuple(lesson.aud for lesson in lessons)
+        teacher_ids = tuple(lesson.teacher_id for lesson in lessons)
+        is_forces = tuple(lesson.is_force for lesson in lessons)
+
         try:
-            res = (await self.conn.fetchrow(query, card_hist_id, sched_ver_id, user_id, CardsStatesStatuses.edited, lessons_json))['id']
+            res = await self.conn.fetchval(
+                query,
+                card_hist_id, sched_ver_id, user_id, CardsStatesStatuses.edited,  discipline_ids, positions, auds, teacher_ids, is_forces
+            )
         except UniqueViolationError as e:
             exc = e.as_dict()['detail']
             details = extract_conflict_values(exc)

@@ -29,3 +29,8 @@ class GroupsQueries:
                 'UPDATE groups SET is_active = false WHERE id = ANY($1) RETURNING id', ids2deprecated)
 
         return len(active_rows), len(inactive_rows)
+
+    async def groups2elastic(self):
+        query = 'SELECT id, name FROM groups'
+        res = await self.conn.fetch(query)
+        return res

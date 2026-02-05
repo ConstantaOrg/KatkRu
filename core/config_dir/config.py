@@ -73,12 +73,17 @@ class Settings(BaseSettings):
     elastic_cert: str
     elastic_cert_docker: str
 
-    search_index: str
+    search_index_spec: str
+    search_index_group: str
+    log_index: str
 
     app_mode: AppMode
+    post_processing_responses: bool # Использовать респонс модели или нет. Влияет на производительность ценой читаемости
+    uvi_workers: int
     es_init: bool
-    allowed_ips: set[str] = {"172.25.0.1", "127.0.0.1"}
-    trusted_proxies: set[str] =  {'127.0.0.1', '172.25.0.1'}
+    allowed_ips: set[str] = {"172.18.0.1", "127.0.0.1"}
+    trusted_proxies: set[str] =  {'127.0.0.1', '172.18.0.1'}
+    domain: str
 
     model_config = SettingsConfigDict(extra='allow')
 

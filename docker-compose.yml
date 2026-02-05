@@ -8,7 +8,7 @@ services:
     environment:
       - REDIS_PASSWORD=${REDIS_PASSWORD}
     networks:
-      - net_con
+      net_con:
 
   es01:
     container_name: es01
@@ -29,6 +29,9 @@ services:
     volumes:
       - esdata01:/usr/share/elasticsearch/data
     mem_limit: 16g
+    # внешний | внутренний
+    ports:
+      - "9200:9200"
     networks:
       net_con:
 
@@ -50,8 +53,75 @@ services:
       retries: 15
     volumes:
       - kibana01:/usr/share/kibana/data
+    # внешний | внутренний
     ports:
       - '127.0.0.1:5601:5601'
+    networks:
+      net_con:
+
+  filebeat:
+    image: docker.elastic.co/beats/filebeat:${ELASTIC_VERSION}
+    container_name: fb_monitor
+    command: filebeat -e --strict.perms=false -c /usr/share/filebeat/filebeat.yml
+    user: root
+    environment:
+      - ELASTICSEARCH_HOSTS=http://es01:9200
+      - KIBANA_HOST=http://kibana01:5601
+    volumes:
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - fb_data01:/usr/share/filebeat/data
+      - fb_config:/usr/share/filebeat
+      - ./logs:/app/logs:ro
+    healthcheck:
+      test: ["CMD-SHELL", "filebeat test config"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    depends_on:
+      es01:
+        condition: service_healthy
+      web_app:
+        condition: service_started
+      filebeat-setup:
+        condition: service_completed_successfully
+    networks:
+      net_con:
+
+  filebeat-setup:
+    image: docker.elastic.co/beats/filebeat:${ELASTIC_VERSION}
+    container_name: fb_setup
+    user: root
+    command: >
+      bash -c "
+        cp /tmp/filebeat.yml /usr/share/filebeat/filebeat.yml &&
+        chmod 600 /usr/share/filebeat/filebeat.yml &&
+        chown root:root /usr/share/filebeat/filebeat.yml &&
+        echo 'Filebeat config copied and permissions set'
+      "
+    volumes:
+      - ./filebeat.yml:/tmp/filebeat.yml:ro
+      - fb_config:/usr/share/filebeat
+    networks:
+      net_con:
+
+  grafana:
+    image: grafana/grafana:10.2.0
+    container_name: grafana
+    depends_on:
+      es01:
+        condition: service_healthy
+      filebeat:
+        condition: service_started
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSW}
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    # внешний | внутренний
+    ports:
+      - "127.0.0.1:3000:3000"
     networks:
       net_con:
 
@@ -70,6 +140,9 @@ services:
     volumes:
       - pg_data:/var/lib/postgresql/data
       - ./secrets/${DUMPS_DIR}:/docker-entrypoint-initdb.d
+    # внешний | внутренний
+    ports:
+      - "127.0.0.1:5431:5432"
     networks:
       net_con:
 
@@ -82,6 +155,12 @@ services:
         condition: service_healthy
       es01:
         condition: service_healthy
+      kibana01:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    volumes:
+      - ./logs:/app/logs
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8000/api/v1/healthcheck || exit 1"]
       interval: 5s
@@ -89,8 +168,9 @@ services:
       retries: 10
     secrets:
       - .env.prod
+    # внешний | внутренний
     ports:
-      - '8000:8000'
+      - '8100:8000'
     networks:
       net_con:
 
@@ -103,6 +183,12 @@ volumes:
   pg_data:
     driver: local
   redis_data:
+    driver: local
+  fb_data01:
+    driver: local
+  fb_config:
+    driver: local
+  grafana_data:
     driver: local
 
 networks:

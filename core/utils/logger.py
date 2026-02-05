@@ -1,16 +1,18 @@
 import os
 import inspect
+import json
 from pathlib import Path
+from datetime import datetime, UTC
 
 import logging
 from logging.config import dictConfig
 
-from typing import Literal
+from typing import Literal, Any
 
 from starlette.requests import Request
 from starlette.websockets import WebSocket
 
-from core.config_dir.config import WORKDIR
+from core.config_dir.config import WORKDIR, env
 from core.utils.anything import create_log_dirs, get_client_ip
 
 
@@ -19,17 +21,43 @@ LOG_DIR = Path(WORKDIR) / 'logs'
 
 
 
-class InfoWarningFilter(logging.Filter):
-    def logger_filter(self, log):
-        return log.levelno in (logging.INFO, logging.WARNING, logging.ERROR)
+class JSONFormatter(logging.Formatter):
+    def format(self, record):
+        log_entry = {
+            "@timestamp": datetime.now(UTC).isoformat() + "Z",
+            "level": record.levelname,
+            "message": record.getMessage(),
+            "service": "fastapi-app",
+            "environment": env.app_mode,
+            "method": record.__dict__.get('method', ''),
+            "url": str(record.__dict__.get('url', '')),
+            "func": record.__dict__.get('func', 'unknown_function'),
+            "location": record.__dict__.get('location', 'unknown_location'),
+            "line": record.__dict__.get('line', 0),
+            "ip": str(record.__dict__.get('ip', ''))
+        }
+        
+        # Добавляем дополнительные поля из extra (для HTTP метрик и ресурсов)
+        # Берем значения напрямую из __dict__ чтобы сохранить типы (числа остаются числами)
+        extra_fields = [
+            'http_status', 'response_time', 'cpu_percent', 'memory_percent', 
+            'memory_used_mb', 'memory_total_mb', 'metric_type'
+        ]
+        for key in extra_fields:
+            log_entry[key] = record.__dict__.get(key, '')
 
-class ErrorFilter(logging.Filter):
-    def logger_filter(self, log):
-        return log.levelno == logging.CRITICAL
+        try:
+            return json.dumps(log_entry, ensure_ascii=False)
+        except (TypeError, ValueError) as e:
+            fallback_entry = {
+                "@timestamp": datetime.now(UTC).isoformat() + "Z",
+                "level": record.levelname,
+                "message": str(record.getMessage()),
+                "service": "fastapi-app",
+                "error": f"JSON serialization failed: {str(e)}"
+            }
+            return json.dumps(fallback_entry, ensure_ascii=False)
 
-class DebugFilter(logging.Filter):
-    def logger_filter(self, log):
-        return log.levelno == logging.DEBUG
 
 lvls = {
     "DEBUG": 10,
@@ -59,74 +87,31 @@ logger_settings = {
                 "CRITICAL": "bold_red"
             }
         },
-        "no_color": {
-            "()": "colorlog.ColoredFormatter",
-            "format": "%(levelname)-8s | "
-                      "D%(asctime)s | "
-                      "%(method)s %(url)s | "
-                      "%(location)s: def %(func)s(): line - %(line)d - %(ip)s "
-                      "%(message)s",
-            "datefmt": "%d-%m-%Y T%H:%M:%S",
-            "log_colors": {
-                "DEBUG": "white",
-                "INFO": "green",
-                "WARNING": "yellow",
-                "ERROR": "red",
-                "CRITICAL": "bold_red"
-            }
+        "json": {
+            "()": JSONFormatter
         }
     },
-    "filters": {
-        "info_warning_error_filter": {
-            "()": InfoWarningFilter,
-        },
-        "error_filter": {
-            "()": ErrorFilter,
-        },
-        "debug_filter": {
-            "()": DebugFilter,
-        }
-    },
+    "filters": {},
     "handlers": {
         "console": {
             "class": "logging.StreamHandler",
             "formatter": "default",
             "level": "DEBUG"
         },
-        "debug_file": {
+        "json_file": {
             "class": "logging.handlers.TimedRotatingFileHandler",
             "level": "DEBUG",
-            "formatter": "no_color",
-            "filename": LOG_DIR / "debug" / "app.log",
+            "formatter": "json",
+            "filename": LOG_DIR / "app.log",
             "when": "midnight",
-            "backupCount": 60,
+            "backupCount": 30,
             "encoding": "utf8",
-            "filters": ["debug_filter"]
-        },
-        "info_warning_errors_file": {
-            "class": "logging.handlers.TimedRotatingFileHandler",
-            "level": "INFO",
-            "formatter": "no_color",
-            "filename": LOG_DIR / "info_warning_error" / "app.log",
-            "when": "midnight",
-            "backupCount": 60,
-            "encoding": "utf8",
-            "filters": ["info_warning_error_filter"]
-        },
-        "critical_file": {
-            "class": "logging.handlers.TimedRotatingFileHandler",
-            "level": "CRITICAL",
-            "formatter": "no_color",
-            "filename": LOG_DIR / "critical" / "app.log",
-            "when": "midnight",
-            "backupCount": 180,
-            "encoding": "utf8",
-            "filters": ["error_filter"]
+            "filters": []
         }
     },
     "loggers": {
         "prod_log": {
-            "handlers": ["console", "info_warning_errors_file", "critical_file", "debug_file"],
+            "handlers": ["console", "json_file"],
             "level": "DEBUG",
             "propagate": False
         }
@@ -137,7 +122,8 @@ dictConfig(logger_settings)
 logger = logging.getLogger('prod_log')
 
 
-def log_event(event: str, *args, request: Request | WebSocket=None, level: Literal['DEBUG','INFO','WARNING','ERROR','CRITICAL'] ='INFO'):
+def log_event(event: Any, *args, request: Request | WebSocket=None, level: Literal['DEBUG','INFO','WARNING','ERROR','CRITICAL'] ='INFO', **extra):
+    event = str(event)
     cur_call = inspect.currentframe()
     outer = inspect.getouterframes(cur_call)[1]
     filename = os.path.relpath(outer.filename)
@@ -146,10 +132,10 @@ def log_event(event: str, *args, request: Request | WebSocket=None, level: Liter
 
     meth, url, ip = '', '', ''
     if isinstance(request, Request):
-        meth, url = request.method, request.url
+        meth, url = request.method, str(request.url)
         ip = request.state.client_ip if hasattr(request.state, 'client_ip') else get_client_ip(request)
     elif isinstance(request, WebSocket):
-        url, ip = request.url, get_client_ip(request)
+        url, ip = str(request.url), get_client_ip(request)
 
     message = event % args if args else event
 
@@ -159,5 +145,6 @@ def log_event(event: str, *args, request: Request | WebSocket=None, level: Liter
         'func': func,
         'line': line,
         'url': url,
-        'ip': ip
+        'ip': ip,
+        **extra
     })

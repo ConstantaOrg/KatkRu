@@ -182,7 +182,7 @@ async def create_std_ttable_on_week(db: PgSqlDep):
                 for idx, teacher_id in enumerate(teachers):
                     lessons_to_insert.append(
                         (
-                            2,
+                            1,
                             group_id,
                             discipline_id,
                             position,
