@@ -7,26 +7,18 @@ services:
       - NET_ADMIN  # Для работы с iptables!!!
     volumes:
       - ./logs:/var/log/nginx
-      - ./scripts:/app/scripts:ro
+      - ./autoban_iptables:/app/scripts:ro
 
   # Сервис для автоматического бана
   ban_monitor:
-    image: alpine:latest
+    build:
+      context: .
+      dockerfile: Dockerfile_ban_monitor
     container_name: katk_ban_monitor
     restart: unless-stopped
     cap_add:
       - NET_ADMIN
     network_mode: "service:nginx"  # Использует сетевой стек nginx
     volumes:
-      - ./scripts:/app/scripts
+      - ./autoban_iptables:/app/scripts
       - ./logs:/var/log/nginx
-    command: >
-      sh -c "
-        apk add --no-cache bash iptables grep &&
-        /app/scripts/manage_bans.sh init &&
-        echo 'Ban monitor запущен. Проверка каждые 60 секунд...' &&
-        while true; do
-          /app/scripts/auto_ban.sh
-          sleep 60
-        done
-      "

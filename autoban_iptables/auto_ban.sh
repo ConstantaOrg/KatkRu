@@ -26,11 +26,13 @@ mkdir -p $TEMP_DIR
 echo -e "${YELLOW}[$(date '+%Y-%m-%d %H:%M:%S')] Запуск анализа логов nginx...${NC}"
 
 # Анализ последней минуты логов
-CURRENT_TIME=$(date '+%d/%b/%Y:%H:%M' -d '1 minute ago')
+# BusyBox date не поддерживает -d, используем текущее время минус 1 минута
+CURRENT_MINUTE=$(date '+%d/%b/%Y:%H:%M')
+PREV_MINUTE=$(date -d '@'$(($(date +%s) - 60)) '+%d/%b/%Y:%H:%M' 2>/dev/null || date '+%d/%b/%Y:%H:%M')
 
 # 1. Поиск IP с большим количеством запросов
 echo -e "${YELLOW}Анализ частоты запросов...${NC}"
-grep "$CURRENT_TIME" $NGINX_LOG 2>/dev/null | \
+grep "$CURRENT_MINUTE\|$PREV_MINUTE" $NGINX_LOG 2>/dev/null | \
     awk '{print $1}' | \
     sort | uniq -c | sort -rn | \
     awk -v threshold=$REQUESTS_THRESHOLD '$1 > threshold {print $2, $1}' > $TEMP_DIR/high_frequency.txt
@@ -44,7 +46,7 @@ fi
 
 # 2. Поиск IP с частыми 429 ошибками (rate limit)
 echo -e "${YELLOW}Анализ ошибок rate limit (429)...${NC}"
-grep "$CURRENT_TIME" $NGINX_LOG 2>/dev/null | \
+grep "$CURRENT_MINUTE\|$PREV_MINUTE" $NGINX_LOG 2>/dev/null | \
     grep ' 429 ' | \
     awk '{print $1}' | \
     sort | uniq -c | sort -rn | \
@@ -59,7 +61,7 @@ fi
 
 # 3. Поиск IP с частыми ошибками авторизации (401/403)
 echo -e "${YELLOW}Анализ ошибок авторизации (401/403)...${NC}"
-grep "$CURRENT_TIME" $NGINX_LOG 2>/dev/null | \
+grep "$CURRENT_MINUTE\|$PREV_MINUTE" $NGINX_LOG 2>/dev/null | \
     grep -E ' (401|403) ' | \
     awk '{print $1}' | \
     sort | uniq -c | sort -rn | \
@@ -74,7 +76,7 @@ fi
 
 # 4. Поиск подозрительных User-Agent
 echo -e "${YELLOW}Анализ подозрительных User-Agent...${NC}"
-grep "$CURRENT_TIME" $NGINX_LOG 2>/dev/null | \
+grep "$CURRENT_MINUTE\|$PREV_MINUTE" $NGINX_LOG 2>/dev/null | \
     grep -iE '(bot|crawler|spider|scraper|curl|wget|python|scanner)' | \
     grep -v -iE '(googlebot|bingbot|yandexbot)' | \
     awk '{print $1}' | \
@@ -85,7 +87,7 @@ if [ -s $TEMP_DIR/suspicious_ua.txt ]; then
     while read ip count; do
         echo -e "${YELLOW}IP $ip: $count запросов с подозрительным User-Agent${NC}"
         # Можно раскомментировать для автобана
-        # $BAN_SCRIPT ban $ip
+         $BAN_SCRIPT ban $ip
     done < $TEMP_DIR/suspicious_ua.txt
 fi
 

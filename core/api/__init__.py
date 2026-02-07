@@ -23,6 +23,6 @@ main_router.include_router(teachers_router)
 main_router.include_router(disciplines_router)
 main_router.include_router(ttable_versions_router)
 
-@main_router.get('/healthcheck')
+@main_router.get('/public/healthcheck')
 def healthcheck():
     return {'status': True, 'version': '0.1.5'}

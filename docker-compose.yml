@@ -15,7 +15,8 @@ services:
     image: docker.elastic.co/elasticsearch/elasticsearch:${ELASTIC_VERSION}
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:9200 || exit 1"]
-      interval: 8s
+#      interval: 3m в проде
+      interval: 10s
       timeout: 10s
       retries: 15
     environment:
@@ -48,7 +49,8 @@ services:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "curl -s -I http://localhost:5601 | grep -q 'HTTP/1.1 302 Found'"]
-      interval: 8s
+#      interval: 2m  в проде
+      interval: 10s
       timeout: 10s
       retries: 15
     volumes:
@@ -75,6 +77,7 @@ services:
       - ./logs:/app/logs:ro
     healthcheck:
       test: ["CMD-SHELL", "filebeat test config"]
+#      interval: 1m в проде
       interval: 30s
       timeout: 10s
       retries: 5
@@ -134,7 +137,7 @@ services:
       - POSTGRES_DB=${PG_DB}
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${PG_ADMIN}"]
-      interval: 5s
+      interval: 15s
       timeout: 5s
       retries: 10
     volumes:
@@ -149,6 +152,7 @@ services:
   web_app:
     build: .
     container_name: web_app
+    restart: on-failure
     environment:
       - ENV_FILE=/run/secrets/.env.prod
     depends_on:
@@ -163,7 +167,7 @@ services:
     volumes:
       - ./logs:/app/logs
     healthcheck:
-      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/healthcheck')\""]
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/public/healthcheck')\""]
       interval: 30s
       timeout: 5s
       retries: 3
