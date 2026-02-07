@@ -1,0 +1,304 @@
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: production-alerts
+    folder: Production Alerts
+    interval: 1m
+    rules:
+      - uid: error-critical-logs
+        title: Critical | Error log received
+        condition: C
+        data:
+          - refId: A
+            queryType: ""
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: P4E55FF30829D8CB1
+            model:
+              intervalMs: 1000
+              maxDataPoints: 43200
+              bucketAggs:
+                - type: date_histogram
+                  field: "@timestamp"
+                  id: "2"
+                  settings:
+                    interval: auto
+                    min_doc_count: "0"
+                    trimEdges: "0"
+              metrics:
+                - type: count
+                  id: "1"
+              query: "environment:docker AND (level:ERROR OR level:CRITICAL)"
+              refId: A
+              timeField: "@timestamp"
+          - refId: B
+            queryType: ""
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params: []
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - B
+                  reducer:
+                    params: []
+                    type: sum
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              hide: false
+              intervalMs: 1000
+              maxDataPoints: 43200
+              reducer: sum
+              refId: B
+              settings:
+                mode: dropNN
+              type: reduce
+          - refId: C
+            queryType: ""
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 3
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - C
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: $B > 3
+              hide: false
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: C
+              type: math
+        noDataState: NoData
+        execErrState: Alerting
+        for: 30s
+        annotations:
+          summary: 🚨 Обнаружены критические логи
+          description: В системе обнаружено {{ $values.B.Value }} логов с уровнем ERROR или CRITICAL за последние 5 минут
+        labels:
+          severity: critical
+        isPaused: false
+
+      - uid: http-5xx-errors
+        title: HTTP 5xx Errors
+        condition: C
+        data:
+          - refId: A
+            queryType: ""
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: P4E55FF30829D8CB1
+            model:
+              intervalMs: 1000
+              maxDataPoints: 43200
+              bucketAggs:
+                - type: date_histogram
+                  field: "@timestamp"
+                  id: "2"
+                  settings:
+                    interval: auto
+                    min_doc_count: "0"
+                    trimEdges: "0"
+              metrics:
+                - type: count
+                  id: "1"
+              query: "environment:docker AND http_status:[500 TO 599]"
+              refId: A
+              timeField: "@timestamp"
+          - refId: B
+            queryType: ""
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params: []
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - B
+                  reducer:
+                    params: []
+                    type: sum
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              hide: false
+              intervalMs: 1000
+              maxDataPoints: 43200
+              reducer: sum
+              refId: B
+              settings:
+                mode: dropNN
+              type: reduce
+          - refId: C
+            queryType: ""
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 5
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - C
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: $B > 5
+              hide: false
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: C
+              type: math
+        noDataState: NoData
+        execErrState: Alerting
+        for: 1m
+        annotations:
+          summary: ⚠️ HTTP 5xx ошибки
+          description: Обнаружено {{ $values.B.Value }} HTTP ответов с кодом 5xx за последние 5 минут
+        labels:
+          severity: warning
+        isPaused: false
+
+      - uid: slow-response-time
+        title: Slow Response Time
+        condition: C
+        data:
+          - refId: A
+            queryType: ""
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: P4E55FF30829D8CB1
+            model:
+              intervalMs: 1000
+              maxDataPoints: 43200
+              bucketAggs:
+                - type: date_histogram
+                  field: "@timestamp"
+                  id: "2"
+                  settings:
+                    interval: auto
+                    min_doc_count: "0"
+                    trimEdges: "0"
+              metrics:
+                - type: count
+                  id: "1"
+              query: "environment:docker AND response_time:[7 TO *]"
+              refId: A
+              timeField: "@timestamp"
+          - refId: B
+            queryType: ""
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params: []
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - B
+                  reducer:
+                    params: []
+                    type: sum
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              hide: false
+              intervalMs: 1000
+              maxDataPoints: 43200
+              reducer: sum
+              refId: B
+              settings:
+                mode: dropNN
+              type: reduce
+          - refId: C
+            queryType: ""
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 10
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - C
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: $B > 10
+              hide: false
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: C
+              type: math
+        noDataState: NoData
+        execErrState: Alerting
+        for: 2m
+        annotations:
+          summary: 🐌 Медленные ответы
+          description: Обнаружено {{ $values.B.Value }} запросов с временем ответа более 7 секунд за последние 10 минут
+        labels:
+          severity: warning
+        isPaused: false

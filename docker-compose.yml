@@ -106,7 +106,7 @@ services:
       net_con:
 
   grafana:
-    image: grafana/grafana:10.2.0
+    image: grafana/grafana:11.0.0
     container_name: grafana
     depends_on:
       es01:

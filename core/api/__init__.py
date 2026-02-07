@@ -2,7 +2,7 @@ from fastapi import APIRouter
 
 from .n8n_ui import router as n8n_ui_router
 from .specialties import router as specialties_router
-from core.api.elastic_search.api_elastic_search import router as search_router
+from .elastic_search.api_elastic_search import router as search_router
 from .timetable.timetable_api import router as timetable_router
 from .users.users_api import router as users_router
 from .groups_tab import router as groups_router
