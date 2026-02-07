@@ -1,0 +1,18 @@
+FROM alpine:3.18
+
+
+RUN apk add --no-cache bash iptables grep curl
+
+WORKDIR /app
+
+# Копировать скрипты
+COPY scripts/manage_bans.sh /app/
+COPY scripts/auto_ban.sh /app/
+RUN chmod +x /app/*.sh
+
+HEALTHCHECK --interval=60s --timeout=5s --retries=3 \
+  CMD iptables -L KATK_BANLIST -n || exit 1
+
+
+ENTRYPOINT ["/bin/bash"]
+CMD ["-c", "/app/manage_bans.sh init && while true; do /app/auto_ban.sh; sleep 60; done"]
