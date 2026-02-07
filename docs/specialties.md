@@ -1,39 +1,50 @@
-## Specialties {specialties}
+## Specialties
 
 Модуль управления специальностями учебного заведения. Предоставляет функциональность для просмотра списка специальностей и получения детальной информации о конкретной специальности. Используется для организации учебного процесса и группировки студентов по направлениям обучения.
 
 ### Endpoints
 
-| Method | Path | Function | Auth Required | Description |
-|--------|------|----------|---------------|-------------|
+| Method | Path | Function | Auth | Description |
+|--------|------|----------|------|-------------|
 | POST | `/api/v1/public/specialties/all` | specialties_all | ✗ |  |
 | GET | `/api/v1/public/specialties/{spec_id}` | specialties_get | ✗ |  |
 
-### Database Tables
+---
 
-- `groups`
-- `specialties`
+## Detailed Endpoint Documentation
 
-### Data Schemas
+### POST `/api/v1/public/specialties/all` - 
 
-- `SpecialtyGetResponse`
-- `SpecsPaginSchema`
-- `SpecialtiesAllResponse`
+**Данные на вход:**
 
-### Usage Examples
-
-#### Successful POST request to /api/v1/public/specialties/all
-Example of a successful post request to the specialties_all endpoint.
-
-**Request:**
-```bash
-curl -X POST -v -H "Content-Type: application/json" -d '{"offset":42,"limit":42}' "https://api.example.com/api/v1/public/specialties/all"
+```python
+# SpecsPaginSchema
+offset: int | None
+limit: int | None
 ```
 
-**Response:**
+**Процесс выполнения:**
+
+1. **Работа с БД** - `db.specialties.get_specialties`
+    - Function call: db.specialties.get_specialties
+
+2. **Работа с БД** - `get_custom_pgsql`
+    - FastAPI dependency: get_custom_pgsql
+
+3. **Работа с БД** - `PgSql`
+    - Function call: PgSql
+
+4. **function** - `dict`
+    - Function call: dict
+
+5. **function** - `router.post`
+    - Function call: router.post
+
+**Возможные ответы:**
+
+**Успешный ответ (200):**
 ```json
 {
-  "total": "example_string",
   "specialties": [
     {
       "code": "09.02.07",
@@ -45,37 +56,36 @@ curl -X POST -v -H "Content-Type: application/json" -d '{"offset":42,"limit":42}
 }
 ```
 
-#### Validation Error - POST /api/v1/public/specialties/all
-Example of a validation error when required parameters are missing.
+---
 
-**Request:**
-```bash
-curl -X POST -v "https://api.example.com/api/v1/public/specialties/all"
-```
 
-**Response:**
-```json
-{
-  "error": "Validation Error",
-  "message": "Required parameters missing",
-  "details": [
-    {
-      "field": "required_field",
-      "message": "This field is required"
-    }
-  ]
-}
-```
+### GET `/api/v1/public/specialties/{spec_id}` - 
 
-#### Successful GET request to /api/v1/public/specialties/{spec_id}
-Example of a successful get request to the specialties_get endpoint.
+**Данные на вход:**
 
-**Request:**
-```bash
-curl -X GET -v "https://api.example.com/api/v1/public/specialties/123"
-```
+**Параметры:**
+- `spec_id` (int, обязательный)
 
-**Response:**
+**Процесс выполнения:**
+
+1. **Работа с БД** - `db.specialties.get_spec_by_id`
+    - Function call: db.specialties.get_spec_by_id
+
+2. **Работа с БД** - `get_custom_pgsql`
+    - FastAPI dependency: get_custom_pgsql
+
+3. **Работа с БД** - `PgSql`
+    - Function call: PgSql
+
+4. **function** - `dict`
+    - Function call: dict
+
+5. **function** - `router.get`
+    - Function call: router.get
+
+**Возможные ответы:**
+
+**Успешный ответ (200):**
 ```json
 {
   "speciality": {
@@ -90,3 +100,15 @@ curl -X GET -v "https://api.example.com/api/v1/public/specialties/123"
 ```
 
 ---
+
+
+### Database Tables
+
+- `groups`
+- `specialties`
+
+### Data Schemas
+
+- `SpecialtiesAllResponse`
+- `SpecialtyGetResponse`
+- `SpecsPaginSchema`

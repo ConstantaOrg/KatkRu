@@ -22,6 +22,7 @@ from .constants import (
     EXCLUSION_PATTERNS, DOCUMENTATION_TEMPLATES, MARKDOWN_HEADERS,
     VALIDATION_MESSAGES, FILE_NAMES
 )
+from .improved_formatter import ImprovedDocumentationFormatter
 
 
 def analyze_endpoints(app: FastAPI, analyzer: EndpointAnalyzer, logger: logging.Logger) -> List[EndpointInfo]:

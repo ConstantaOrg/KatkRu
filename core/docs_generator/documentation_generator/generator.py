@@ -200,7 +200,10 @@ class DocumentationGenerator:
         """Generate separate Markdown files for each module."""
         if output_dir is None:
             output_dir = FILE_NAMES.DOCS_DIR
-        return handlers.generate_module_markdown_files(documentation, output_dir, self.logger)
+        
+        # Use improved handlers for better documentation
+        from .improved_handlers import generate_improved_module_files
+        return generate_improved_module_files(documentation, output_dir, self.logger)
     
     def generate_integration_documentation(self) -> str:
         """Generate integration documentation as Markdown."""
