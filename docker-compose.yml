@@ -173,6 +173,8 @@ services:
       retries: 3
     secrets:
       - .env.prod
+      - private_key.pem
+      - public_key.pem
     ports:
       - "127.0.0.1:8100:8000"
     networks:
@@ -221,3 +223,7 @@ networks:
 secrets:
   .env.prod:
     file: .env.prod
+  private_key.pem:
+    file: ./secrets/keys/private_jwt.pem
+  public_key.pem:
+    file: ./secrets/keys/public_jwt.pem
