@@ -4,9 +4,9 @@
 
 ## Statistics
 
-- Total Endpoints: 33
+- Total Endpoints: 34
 - Modules: 9
-- Authenticated Endpoints: 25
+- Authenticated Endpoints: 26
 - Public Endpoints: 8
 
 ## Modules

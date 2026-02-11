@@ -1,6 +1,6 @@
 """
 Response схемы для n8n_ui endpoints.
-Соответствует core/api/n8n_ui.py
+Соответствует core/api/main_ui.py
 """
 
 from typing import List, Any

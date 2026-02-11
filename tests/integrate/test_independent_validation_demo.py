@@ -80,10 +80,10 @@ async def test_cards_save_multi_response_validation(client, seed_info):
         "ttable_id": seed_info["ttable_id"],
         "lessons": [
             {
-                "position": 2,  # Different position to avoid conflict
+                "position": 3,  # Different position to avoid conflict (seed has 1 and 2)
                 "discipline_id": seed_info["discipline_id"],
                 "teacher_id": seed_info["teacher_id"],
-                "aud": "202",
+                "aud": "303",
                 "is_force": False,
             }
         ],

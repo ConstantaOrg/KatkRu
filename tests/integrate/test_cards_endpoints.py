@@ -29,7 +29,7 @@ def _build_simple_doc(path: Path, group_name: str, discipline: str, teacher: str
 
 @pytest.mark.asyncio
 async def test_healthcheck(client):
-    resp = await client.get("/api/v1/healthcheck")
+    resp = await client.get("/api/v1/public/healthcheck")
     assert resp.status_code == 200
     assert resp.json().get("status") == True
 
@@ -77,7 +77,7 @@ async def test_cards_content(client, seed_info):
     validator.add_rule(ValidationRule("card_content", list, required=True))
     
     resp = await client.get(
-        "/api/v1/private/n8n_ui/cards/content",
+        "/api/v1/private/n8n_ui/cards/history_content",
         params={"card_hist_id": seed_info["hist_id"]},
     )
     
@@ -90,7 +90,7 @@ async def test_cards_content(client, seed_info):
     
     # Validate business logic: content should contain expected data
     content = data["card_content"]
-    assert len(content) == 1, "Expected exactly one content record"
+    assert len(content) == 2, "Expected exactly two content records (from seed)"
     
     row = content[0]
     # Validate essential fields exist
@@ -114,8 +114,15 @@ async def test_cards_get_by_id(client, seed_info):
     )
     assert resp.status_code == 200
     payload = resp.json()["ext_card"]
-    assert payload[0]["teacher_id"] == seed_info["teacher_id"]
-    assert payload[0]["aud"] == "101"
+    assert len(payload) == 2, "Expected 2 lessons from seed"
+    
+    # Check that both lessons exist (order not guaranteed)
+    auds = {item["aud"] for item in payload}
+    assert auds == {"101", "102"}, f"Expected auds 101 and 102, got {auds}"
+    
+    # Check teacher_id is correct for all lessons
+    for item in payload:
+        assert item["teacher_id"] == seed_info["teacher_id"]
 
 
 @pytest.mark.asyncio
@@ -181,7 +188,7 @@ async def test_std_ttable_get_all_creates_snapshot(client, seed_info, pg_pool):
         "week_day": 1,
         "ttable_id": new_sched_id,
     }
-    resp = await client.post("/api/v1/private/n8n_ui/std_ttable/get_all", json=body)
+    resp = await client.post("/api/v1/private/n8n_ui/ttable/std/get_all", json=body)
     
     # Validate response structure
     assert resp.status_code == 200
@@ -221,7 +228,7 @@ async def test_current_ttable_get_all_returns_active_cards(client, seed_info):
     validator.add_rule(ValidationRule("lessons", list, required=True))
     
     resp = await client.post(
-        "/api/v1/private/n8n_ui/current_ttable/get_all",
+        "/api/v1/private/n8n_ui/ttable/current/get_all",
         json={"ttable_id": seed_info["ttable_id"]},
     )
     
@@ -234,7 +241,7 @@ async def test_current_ttable_get_all_returns_active_cards(client, seed_info):
     
     # Validate business logic: lessons should contain expected data
     lessons = data["lessons"]
-    assert len(lessons) == 1, "Expected exactly one lesson record"
+    assert len(lessons) == 2, "Expected exactly two lesson records (from seed)"
     
     row = lessons[0]
     # Validate essential fields exist
@@ -261,10 +268,10 @@ async def test_cards_save_creates_new_version(client, seed_info, pg_pool):
         "ttable_id": seed_info["ttable_id"],
         "lessons": [
             {
-                "position": 2,
+                "position": 3,
                 "discipline_id": seed_info["discipline_id"],
                 "teacher_id": seed_info["teacher_id"],
-                "aud": "202",
+                "aud": "303",
                 "is_force": False,
             }
         ],
@@ -302,7 +309,7 @@ async def test_cards_save_creates_new_version(client, seed_info, pg_pool):
     new_record_exists = any(r["card_hist_id"] == new_hist_id for r in rows)
     assert new_record_exists, "New card history record should exist in database"
     
-    correct_aud_and_current = any(r["aud"] == "202" and r["is_current"] for r in rows)
+    correct_aud_and_current = any(r["aud"] == "303" and r["is_current"] for r in rows)
     assert correct_aud_and_current, "New record should have correct aud and be current"
 
 

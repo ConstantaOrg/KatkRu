@@ -149,9 +149,10 @@ async def _truncate_and_seed(conn: asyncpg.Connection):
         )
     )["id"]
 
+    # Добавляем 2 урока, чтобы карточка могла быть утверждена (минимум accept_card_constraint = 2)
     await conn.execute(
         "INSERT INTO cards_states_details (card_hist_id, discipline_id, position, aud, teacher_id, sched_ver_id, is_force) "
-        "VALUES ($1, $2, 1, '101', $3, $4, false)",
+        "VALUES ($1, $2, 1, '101', $3, $4, false), ($1, $2, 2, '102', $3, $4, false)",
         hist_id,
         discipline_id,
         teacher_id,

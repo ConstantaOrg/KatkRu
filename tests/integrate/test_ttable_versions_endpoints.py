@@ -37,7 +37,7 @@ async def test_pre_commit_ok(client, pg_pool):
         )
 
     resp = await client.put(
-        "/api/v1/private/ttable/versions/pre-commit",
+        "/api/v1/private/n8n_ui/ttable/versions/pre-commit",
         json={"ttable_id": ttv_id},
     )
     assert resp.status_code in (200, 202)
@@ -88,7 +88,7 @@ async def test_pre_commit_missing_groups(client, pg_pool):
         )
 
     resp = await client.put(
-        "/api/v1/private/ttable/versions/pre-commit",
+        "/api/v1/private/n8n_ui/ttable/versions/pre-commit",
         json={"ttable_id": ttv_id},
     )
     assert resp.status_code == 409
@@ -126,7 +126,7 @@ async def test_commit_version(client, pg_pool):
         )
 
     resp = await client.put(
-        "/api/v1/private/ttable/versions/commit",
+        "/api/v1/private/n8n_ui/ttable/versions/commit",
         json={"pending_ver_id": pending, "target_ver_id": target},
     )
     assert resp.status_code == 200
