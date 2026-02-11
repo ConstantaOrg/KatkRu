@@ -7,8 +7,9 @@ from core.data.postgre import PgSqlDep
 from core.response_schemas.n8n_ui import CardsHistoryResponse, CardsGetByIdResponse, CardsContentResponse, \
     CardsAcceptResponse
 from core.schemas.cookie_settings_schema import JWTCookieDep
-from core.schemas.n8n_ui.cards_schemas import SaveCardSchema, BulkCardsSchema
+from core.schemas.n8n_ui.cards_schemas import SaveCardSchema, BulkCardsSchema, DelCardsSchema
 from core.schemas.n8n_ui.ttable_needs_schema import ExtCardStateSchema
+from core.schemas.schemas2depends import PagenDep
 from core.utils.anything import Roles
 from core.utils.lite_dependencies import role_require
 from core.utils.logger import log_event
@@ -19,7 +20,7 @@ router = APIRouter(prefix="/cards")
 
 
 
-@router.post("/get_by_id", dependencies=[Depends(role_require(Roles.methodist))], response_model=CardsGetByIdResponse)
+@router.post("/get_by_id", dependencies=[Depends(role_require(Roles.methodist, Roles.read_all))], response_model=CardsGetByIdResponse)
 async def create_ttable(body: ExtCardStateSchema, db: PgSqlDep, request: Request, _ :JWTCookieDep):
     """Вызывается при нажатии на карточку/При переходе к изменению карточки-пар для группы"""
     records = await db.n8n_ui.get_ext_card(body.card_hist_id)
@@ -61,7 +62,7 @@ async def save_card(body: SaveCardSchema, db: PgSqlDep, request: Request, _: JWT
 
 
 
-@router.get("/history", dependencies=[Depends(role_require(Roles.methodist))], response_model=CardsHistoryResponse)
+@router.get("/history", dependencies=[Depends(role_require(Roles.methodist, Roles.read_all))], response_model=CardsHistoryResponse)
 async def get_cards_history(
         sched_ver_id: Annotated[int, Query()],
         group_id: Annotated[int, Query()],
@@ -75,7 +76,7 @@ async def get_cards_history(
     return {'history': [dict(record) for record in records]}
 
 
-@router.get("/history_content", dependencies=[Depends(role_require(Roles.methodist))], response_model=CardsContentResponse)
+@router.get("/history_content", dependencies=[Depends(role_require(Roles.methodist, Roles.read_all))], response_model=CardsContentResponse)
 async def get_card_content(card_hist_id: Annotated[int, Query()], db: PgSqlDep, request: Request, _: JWTCookieDep):
     """Выведет содержимое из истории состояний карточки"""
     records = await db.n8n_ui.get_card_content(card_hist_id)
@@ -88,12 +89,12 @@ async def switch_card_status(card_hist_id: Annotated[int, Body(embed=True)], db:
     """Поменять статус карточки на 'Утверждено'"""
     status, msg = await db.n8n_ui.accept_card(card_hist_id)
     if status == 409:
-        log_event(f'Карточка не удовлетворяет условиям: \033[31m"{msg}"\033[0m', request=request, level='WARNING')
+        log_event(f'Карточка не удовлетворяет условиям: \033[31m"{msg}"\033[0m; user_id: \033[33m{request.state.user_id}\033[0m', request=request, level='WARNING')
         raise HTTPException(status_code=409, detail=msg)
     if status == 403:
-        log_event(f'Это расписание нельзя редактировать, так как оно уже утверждено', request=request, level='WARNING')
+        log_event(f'Это расписание нельзя редактировать, так как оно уже утверждено; user_id: \033[33m{request.state.user_id}\033[0m', request=request, level='WARNING')
         raise HTTPException(status_code=403, detail=msg)
-    log_event(f'Утвердили карточку \033[35m#{card_hist_id}\033[0m', request=request)
+    log_event(f'Утвердили карточку \033[35m#{card_hist_id}\033[0m; user_id: \033[33m{request.state.user_id}\033[0m', request=request)
     return {'success': True, 'message': msg}
 
 
@@ -101,12 +102,12 @@ async def switch_card_status(card_hist_id: Annotated[int, Body(embed=True)], db:
 async def switch_card_status(card_hist_id: Annotated[int, Body(embed=True)], db: PgSqlDep, _: JWTCookieDep, request: Request):
     """Поменять статус карточки на 'Редактировано'"""
     await db.n8n_ui.switch_as_edit(card_hist_id)
-    log_event(f'Карточка \033[33m#{card_hist_id}\033[0m Теперь со статусом "Edit"', request=request)
+    log_event(f'Карточка \033[33m#{card_hist_id}\033[0m Теперь со статусом "Edit"; user_id: \033[33m{request.state.user_id}\033[0m', request=request)
     return {'success': True, 'message': f'Карточка {card_hist_id} теперь в статусе "Редактировано"'}
 
 
 @router.post('/bulk_add', dependencies=[Depends(role_require(Roles.methodist))])
-async def bulk_add_cards(body: BulkCardsSchema, db: PgSqlDep, request: Request, _: JWTCookieDep):
+async def bulk_add_cards_(body: BulkCardsSchema, db: PgSqlDep, request: Request, _: JWTCookieDep):
     """Бульк вставка. Для вставки через UI и для вставки из буфера обмена (Ctrl + V)"""
     cards_ids, msg = await db.n8n_ui.bulk_add_cards(body.ttable_id, request.state.user_id, body.group_names, body.lessons)
 
@@ -120,3 +121,17 @@ async def bulk_add_cards(body: BulkCardsSchema, db: PgSqlDep, request: Request, 
     
     log_event(f'Добавили карточки | cards_ids: \033[33m{cards_ids}\033[0m; groups: {body.group_names}; ttable_id: \033[35m{body.ttable_id}\033[0m; user_id: \033[31m{request.state.user_id}\033[0m',request=request)
     return {'success': True, 'cards_ids': cards_ids}
+
+
+@router.delete('/bulk_del', dependencies=[Depends(role_require(Roles.methodist))])
+async def bulk_del_cards(body: DelCardsSchema, request: Request, db: PgSqlDep, _: JWTCookieDep):
+    await db.n8n_ui.bulk_delete_cards(body.card_ids)
+    log_event(f'Удалили карточки: {body.card_ids}', request=request)
+    return {'success': True, 'message': 'Карточки удалены'}
+
+
+@router.get('/group-box_w_disciplines', dependencies=[Depends(role_require(Roles.methodist, Roles.read_all))])
+async def get_group_box_w_disciplines(group_id: int, db: PgSqlDep, request: Request, _: JWTCookieDep):
+    relevant_disciplines = await db.n8n_ui.group_box_w_disciplines(group_id)
+    log_event(f'Показали "ящик" с дисциплинами | group_id: \033[32m{group_id}\033[0m', request=request)
+    return {'group_box': relevant_disciplines}

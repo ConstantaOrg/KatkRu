@@ -335,8 +335,25 @@ class N8NIUQueries:
         if not_found:
             return card_ids, f'Группы не найдены или неактивны: {", ".join(sorted(not_found))}'
 
+        "Отдаём id карточек, если всё норм"
         return card_ids, None
+
 
     async def switch_as_edit(self, card_hist_id: int):
         query = 'UPDATE cards_states_history SET status_id = $2 WHERE id = $1'
         await self.conn.execute(query, card_hist_id, CardsStatesStatuses.edited)
+
+
+    async def bulk_delete_cards(self, card_ids: list[int]):
+        query = 'DELETE FROM cards_states_details WHERE card_hist_id = ANY($1::int[])'
+        await self.conn.execute(query, card_ids)
+
+
+    async def group_box_w_disciplines(self, group_id: int):
+        query = '''
+        SELECT gs.discipline_id, d.name FROM groups_disciplines gs
+        JOIN disciplines d ON gs.discipline_id = d.id
+        WHERE gs.group_id = $1
+        '''
+        res = await self.conn.fetch(query, group_id)
+        return res

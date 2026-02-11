@@ -20,3 +20,7 @@ class BulkCardsSchema(BaseModel):
     ttable_id: int
     group_names: list[str]
     lessons: List[CardLessonPayload]
+
+"Для бульк удаления"
+class DelCardsSchema(BaseModel):
+    card_ids: list[int]
