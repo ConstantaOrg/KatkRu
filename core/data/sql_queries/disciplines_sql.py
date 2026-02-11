@@ -33,3 +33,8 @@ class DisciplinesQueries:
                 'UPDATE disciplines SET is_active = false WHERE id = ANY($1) RETURNING id', ids2deprecated)
 
         return len(active_rows), len(inactive_rows)
+
+    async def disciplines2elastic(self):
+        query = 'SELECT id, title, is_active FROM disciplines'
+        res = await self.conn.fetch(query)
+        return res

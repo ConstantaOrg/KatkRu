@@ -99,6 +99,8 @@ class Settings(BaseSettings):
 
     search_index_spec: str
     search_index_group: str
+    search_index_discip: str
+    search_index_teachers: str
     log_index: str
 
     app_mode: AppMode

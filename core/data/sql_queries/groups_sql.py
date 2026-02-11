@@ -31,6 +31,6 @@ class GroupsQueries:
         return len(active_rows), len(inactive_rows)
 
     async def groups2elastic(self):
-        query = 'SELECT id, name FROM groups'
+        query = 'SELECT id, name, is_active FROM groups'
         res = await self.conn.fetch(query)
         return res
