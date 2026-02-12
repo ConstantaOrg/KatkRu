@@ -21,22 +21,22 @@ router = APIRouter(prefix='/ttable', tags=['N8N UI📺'])
 
 @router.post("/create", dependencies=[Depends(role_require(Roles.methodist))], response_model=TtableCreateResponse)
 async def create_ttable(body: CreateTtableSchema, db: PgSqlDep, request: Request, _:JWTCookieDep):
-    ttable_id = await db.ttable.create(body.building_id, body.date, body.type, TimetableVerStatuses.pending, request.state.user_id)
+    ttable_id = await db.ttable.create(request.state.building_id, body.date, body.type, TimetableVerStatuses.pending, request.state.user_id)
     log_event(
-        f"Создана версия расписания | sched_ver_id: \033[36m{ttable_id}\033[0m; building_id: %s; type: \033[34m{body.type}\033[0m; назначено на \033[35m{body.date}\033[0m; user_id: \033[33m{body.user_id}\033[0m",
+        f"Создана версия расписания | sched_ver_id: \033[36m{ttable_id}\033[0m; building_id: {request.state.building_id}; type: \033[34m{body.type}\033[0m; назначено на \033[35m{body.date}\033[0m; user_id: \033[33m{body.user_id}\033[0m",
         request=request
     )
     return {'success': True, "ttable_id": ttable_id}
 
 @router.post("/std/get_all", dependencies=[Depends(role_require(Roles.methodist))], response_model=StdTtableGetAllResponse)
 async def get_std_ttable2cards(body: StdTtableLoadSchema, db: PgSqlDep, request: Request, _: JWTCookieDep):
-    std_lessons = await db.n8n_ui.load_std_lessons_as_current(body.building_id, body.week_day, body.ttable_id, request.state.user_id)
-    log_event(f"Загрузка стандартного расписания | building_id: {body.building_id}; sched_ver_id: \033[36m{body.ttable_id}\033[0m; user_id: \033[33m{request.state.user_id}\033[0m", request=request)
+    std_lessons = await db.n8n_ui.load_std_lessons_as_current(request.state.building_id, body.week_day, body.ttable_id, request.state.user_id)
+    log_event(f"Загрузка стандартного расписания | building_id: {request.state.building_id}; sched_ver_id: \033[36m{body.ttable_id}\033[0m; user_id: \033[33m{request.state.user_id}\033[0m", request=request)
     return {'lessons': [dict(lesson) for lesson in std_lessons]}
 
 @router.post("/std/check_exists", dependencies=[Depends(role_require(Roles.methodist, Roles.read_all))], response_model=StdTtableCheckExistsResponse)
 async def check_actuality_of_layout(body: StdTtableSchema, db: PgSqlDep, request: Request, _: JWTCookieDep):
-    resp_body = await db.n8n_ui.check_loaded_std_pairs(body.building_id, body.ttable_id)
+    resp_body = await db.n8n_ui.check_loaded_std_pairs(request.state.building_id, body.ttable_id)
     log_event(
         f"Проверка актуальности выгрузки данных из \033[35mstd_ttable\033[0m | diff_groups: \033[31m{len(resp_body['diff_groups'])}\033[0m; diff_teachers: \033[34m{len(resp_body['diff_teachers'])}\033[0m; diff_disciplines: \033[35m{len(resp_body['diff_disciplines'])}\033[0m",
         request=request, level='WARNING'
@@ -70,7 +70,7 @@ async def pre_commit_ttable_version(body: PreAcceptTimetableSchema, db: PgSqlDep
     response = create_ttable_precommit_response(
         success=False,
         needed_groups=error_data.get("needed_groups", []),
-        ttable_id=error_data.get("ttable_id", body.ttable_id),
+        ttable_id=body.ttable_id,
         message=error_data.get("message", "Conflicts detected in timetable version"),
         cur_active_ver=error_data.get("cur_active_ver"),
         pending_ver_id=error_data.get("pending_ver_id")

@@ -62,6 +62,7 @@ class AuthUXASGIMiddleware:
         request.state.role = 'student'
         request.state.user_id = 1
         request.state.session_id = '1'
+        request.state.building_id = -1
 
         url = request.url.path
         "Обращения Сервера / Докер-сети"
@@ -104,4 +105,5 @@ class AuthUXASGIMiddleware:
         request.state.user_id = int(access_token['sub'])
         request.state.session_id = access_token['s_id']
         request.state.role = access_token['role']
+        request.state.building_id = int(access_token['bid'])
         await self.app(scope, receive, send)

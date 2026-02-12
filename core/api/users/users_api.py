@@ -23,7 +23,7 @@ router = APIRouter(tags=['Users👤'])
     409: {"model": UserRegistrationConflictResponse, "description": "User already exists"}
 })
 async def registration_user(creds: UserRegSchema, db: PgSqlDep, request: Request):
-    insert_attempt = await db.users.reg_user(creds.email, creds.passw, creds.name)
+    insert_attempt = await db.users.reg_user(creds.email, creds.passw, creds.name, creds.building_id)
 
     if not insert_attempt:
         log_event(f"Пользователь с email: {hide_log_param(creds.email)} Уже существует", request=request, level='WARNING')
@@ -40,13 +40,14 @@ async def registration_user(creds: UserRegSchema, db: PgSqlDep, request: Request
     401: {"model": UserLoginUnauthorizedResponse, "description": "Invalid credentials"}
 })
 @rate_limit(5, 300)
-async def log_in(creds: UserLogInSchema, response: Response, db: PgSqlDep, request: Request):
+async def log_in(creds: UserLogInSchema, db: PgSqlDep, request: Request):
     db_user = await db.users.select_user(creds.email)
 
     if db_user and encryption.verify(creds.passw, db_user['passw']):
         token_schema = TokenPayloadSchema(
             id=db_user['id'],
             role=db_user['role'],
+            building_id=db_user['building_id'],
             user_agent=request.headers.get('user-agent'),
             ip=request.state.client_ip,
         )
@@ -87,5 +88,5 @@ async def show_seances(request: Request, db: PgSqlDep, _: JWTCookieDep):
 async def reset_password(update_secrets: UpdatePasswSchema, db: PgSqlDep, request: Request):
     hashed_passw = encryption.hash(update_secrets.passw)
     await db.users.set_new_passw(update_secrets.user_id, hashed_passw)
-    log_event(f"Юзер сменил Пароль | user_id: {update_secrets.user_id}", request=request, level='WARNING')
+    log_event(f"Юзер сменил Пароль | user_id: {update_secrets.user_id}", request=request, level='CRITICAL')
     return {'success': True, 'message': 'Пароль обновлён!'}

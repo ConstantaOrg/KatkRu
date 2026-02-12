@@ -85,8 +85,9 @@ async def _truncate_and_seed(conn: asyncpg.Connection):
     )["id"]
     user_id = (
         await conn.fetchrow(
-            "INSERT INTO users (name, email, passw, role) "
-            "VALUES ('Test User', 'test@example.com', 'pass', 'methodist') RETURNING id"
+            "INSERT INTO users (name, email, passw, role, building_id) "
+            "VALUES ('Test User', 'test@example.com', 'pass', 'methodist', $1) RETURNING id",
+            building_id
         )
     )["id"]
     group_id = (
@@ -198,6 +199,8 @@ async def client(db_seed):
         request.state.client_ip = "127.0.0.1"
         request.state.user_id = 1
         request.state.session_id = "test-session"
+        # Используем test_building_id если установлен, иначе 1
+        request.state.building = getattr(app.state, 'test_building_id', 1)
         return await call_next(request)
 
     async def override_pgsql():
@@ -209,6 +212,8 @@ async def client(db_seed):
 
     transport = httpx.ASGITransport(app=app)
     async with httpx.AsyncClient(transport=transport, base_url="http://test") as ac:
+        # Сохраняем ссылку на app в клиенте
+        ac.app = app
         yield ac
 
 

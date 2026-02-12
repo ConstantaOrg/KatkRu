@@ -8,22 +8,22 @@ class UsersQueries:
     def __init__(self, conn: Connection):
         self.conn = conn
 
-    async def reg_user(self, email, passw: str, name: str, avatar: str = None):
+    async def reg_user(self, email, passw: str, name: str, building_id: int, avatar: str = None):
         query = '''
-        INSERT INTO users (email, passw, name, image_path)
-        VALUES($1, $2, $3, $4)
+        INSERT INTO users (email, passw, name, building_id, image_path)
+        VALUES($1, $2, $3, $4, $5)
         ON CONFLICT (email) DO NOTHING 
         RETURNING id
         '''
         hashed = encryption.hash(passw)
 
-        res = await self.conn.fetchrow(query, email, hashed, name,
+        res = await self.conn.fetchrow(query, email, hashed, name, building_id,
             avatar or default_avatar
         )
         return res
 
     async def select_user(self, email):
-        query = 'SELECT id, passw FROM users WHERE email = $1'
+        query = 'SELECT id, passw, role, building_id FROM users WHERE email = $1'
         res = await self.conn.fetchrow(query, email)
         return res
 

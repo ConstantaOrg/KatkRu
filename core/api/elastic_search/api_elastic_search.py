@@ -7,7 +7,7 @@ from starlette.requests import Request
 from core.api.elastic_search.sub_handlers import fill_group_index, fill_spec_index, fill_teachers_index, fill_disciplines_index
 from core.config_dir.config import ElasticDep, env
 from core.config_dir.index_settings import SpecIndex, GroupIndex, LogIndex, TeachersIndex, DisciplinesIndex
-from core.data.postgre import PgSql, PgSqlDep
+from core.data.postgre import PgSql
 from core.response_schemas.elastic_search import (
     AutocompleteSearchResponse, DeepSearchResponse
 )

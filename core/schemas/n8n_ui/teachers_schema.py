@@ -7,3 +7,6 @@ class TeachersUpdateSchema(BaseModel):
 
 class TeachersAddSchema(BaseModel):
     fio: str
+
+class TeacherFilterSchema(BaseModel):
+    is_active: bool | None = None

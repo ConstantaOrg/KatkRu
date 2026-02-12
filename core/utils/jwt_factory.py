@@ -96,6 +96,7 @@ async def issue_aT_rT(db: PgSqlDep, token_schema: TokenPayloadSchema):
     frame_token = {
         'sub': str(token_schema.id),
         'role': token_schema.role,
+        'bid': str(token_schema.bid),
     }
     hashed_rT = await issue_token(frame_token, 'refresh_token', db=db, session_id=session_id, client=token_schema)
     encoded_aT = await issue_token(frame_token, 'access_token', session_id=session_id)
@@ -104,7 +105,7 @@ async def issue_aT_rT(db: PgSqlDep, token_schema: TokenPayloadSchema):
 
 
 async def reissue_aT(access_token: dict, refresh_token: str, db: PgSqlDep):
-    sub, s_id, role = access_token.get('sub'), access_token.get('s_id'), access_token.get('role')
+    sub, s_id, role, bid = access_token.get('sub'), access_token.get('s_id'), access_token.get('role'), access_token.get('bid')
     if s_id is None or sub is None:
         return 401
 
@@ -113,7 +114,10 @@ async def reissue_aT(access_token: dict, refresh_token: str, db: PgSqlDep):
     if db_rT and secrets.compare_digest(db_rT['refresh_token'], refresh_token):
         # рефреш_токен СОВПАЛ с выданным и ещё НЕ ИСТЁК
         log_event(f"Выпущен новый access_token | s_id: {s_id}; user_id: {sub}")
-        new_access_token = await issue_token({'sub': sub, 's_id': s_id, 'role': role}, 'access_token')
+        new_access_token = await issue_token(
+            {'sub': sub, 's_id': s_id, 'role': role, 'bid': bid},
+            'access_token'
+        )
         return new_access_token
 
     if db_rT is None:
