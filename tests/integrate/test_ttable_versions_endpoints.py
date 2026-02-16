@@ -161,43 +161,54 @@ async def test_get_all_versions(client, pg_pool):
             b_id, u_id, TimetableVerStatuses.pending
         )
     
-    # Мокаем building_id в клиенте
+    # Мокаем building_id в клиенте ПЕРЕД запросами
     client.app.state.test_building_id = b_id
     
-    # Тест без фильтров
-    resp = await client.post(
-        "/api/v1/private/ttable/versions/get_all",
-        json={},
-        params={"limit": 10, "offset": 0}
-    )
-    assert resp.status_code == 200
-    data = resp.json()
-    assert "ttable_versions" in data
-    assert len(data["ttable_versions"]) >= 2
-    
-    # Тест с фильтром по типу
-    resp = await client.post(
-        "/api/v1/private/ttable/versions/get_all",
-        json={"type": "standard"},
-        params={"limit": 10, "offset": 0}
-    )
-    assert resp.status_code == 200
-    data = resp.json()
-    assert len(data["ttable_versions"]) >= 1
-    assert all(v["type"] == "standard" for v in data["ttable_versions"])
-    
-    # Тест с фильтром по статусу
-    resp = await client.post(
-        "/api/v1/private/ttable/versions/get_all",
-        json={"status_id": TimetableVerStatuses.accepted},
-        params={"limit": 10, "offset": 0}
-    )
-    assert resp.status_code == 200
-    data = resp.json()
-    assert len(data["ttable_versions"]) >= 1
-    # Проверяем что все записи имеют статус "Утверждено" (id=1)
-    for v in data["ttable_versions"]:
-        assert v["status"] in ["Утверждено", "accepted"], f"Unexpected status: {v['status']}"
+    try:
+        # Тест без фильтров
+        resp = await client.post(
+            "/api/v1/private/ttable/versions/get_all",
+            json={
+                "body": {},
+                "pagen": {"limit": 10, "offset": 0}
+            }
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "ttable_versions" in data
+        assert len(data["ttable_versions"]) >= 2
+        
+        # Тест с фильтром по типу
+        resp = await client.post(
+            "/api/v1/private/ttable/versions/get_all",
+            json={
+                "body": {"type": "standard"},
+                "pagen": {"limit": 10, "offset": 0}
+            }
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert len(data["ttable_versions"]) >= 1
+        assert all(v["type"] == "standard" for v in data["ttable_versions"])
+        
+        # Тест с фильтром по статусу
+        resp = await client.post(
+            "/api/v1/private/ttable/versions/get_all",
+            json={
+                "body": {"status_id": TimetableVerStatuses.accepted},
+                "pagen": {"limit": 10, "offset": 0}
+            }
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert len(data["ttable_versions"]) >= 1
+        # Проверяем что все записи имеют статус "Утверждено" (id=1)
+        for v in data["ttable_versions"]:
+            assert v["status"] in ["Утверждено", "accepted"], f"Unexpected status: {v['status']}"
+    finally:
+        # Сбрасываем test_building_id после теста
+        if hasattr(client.app.state, 'test_building_id'):
+            delattr(client.app.state, 'test_building_id')
 
 
 @pytest.mark.asyncio
@@ -218,17 +229,21 @@ async def test_get_by_id(client, pg_pool):
     # Мокаем building_id в клиенте
     client.app.state.test_building_id = b_id
     
-    resp = await client.post(
-        "/api/v1/private/ttable/versions/get_by_id",
-        json={"ttable_id": v_id}
-    )
-    assert resp.status_code == 200
-    data = resp.json()
-    assert "ttable_version" in data
-    assert data["ttable_version"] is not None
-    assert data["ttable_version"]["id"] == v_id
-    assert data["ttable_version"]["type"] == "standard"
-    assert "show_icon" in data["ttable_version"]
+    try:
+        resp = await client.post(
+            "/api/v1/private/ttable/versions/get_by_id",
+            json={"ttable_id": v_id}
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "ttable_version" in data
+        assert data["ttable_version"] is not None
+        assert data["ttable_version"]["id"] == v_id
+        assert data["ttable_version"]["type"] == "standard"
+        assert "show_icon" in data["ttable_version"]
+    finally:
+        if hasattr(client.app.state, 'test_building_id'):
+            delattr(client.app.state, 'test_building_id')
 
 
 @pytest.mark.asyncio
@@ -262,18 +277,22 @@ async def test_get_candidates(client, pg_pool):
     # Мокаем building_id в клиенте
     client.app.state.test_building_id = b_id
     
-    resp = await client.post(
-        "/api/v1/private/ttable/versions/replace/get_candidates",
-        json={"ttable_id": source_v}
-    )
-    assert resp.status_code == 200
-    data = resp.json()
-    assert "ttable_candidates" in data
-    candidates = data["ttable_candidates"]
-    assert len(candidates) >= 1
-    # Проверяем что кандидат имеет те же параметры
-    assert any(c["id"] == candidate_v for c in candidates)
-    # Проверяем что версия с другим типом не попала в кандидаты
-    assert not any(c["id"] == other_v for c in candidates)
-    # Проверяем что исходная версия не попала в кандидаты
-    assert not any(c["id"] == source_v for c in candidates)
+    try:
+        resp = await client.post(
+            "/api/v1/private/ttable/versions/replace/get_candidates",
+            json={"ttable_id": source_v}
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "ttable_candidates" in data
+        candidates = data["ttable_candidates"]
+        assert len(candidates) >= 1
+        # Проверяем что кандидат имеет те же параметры
+        assert any(c["id"] == candidate_v for c in candidates)
+        # Проверяем что версия с другим типом не попала в кандидаты
+        assert not any(c["id"] == other_v for c in candidates)
+        # Проверяем что исходная версия не попала в кандидаты
+        assert not any(c["id"] == source_v for c in candidates)
+    finally:
+        if hasattr(client.app.state, 'test_building_id'):
+            delattr(client.app.state, 'test_building_id')
