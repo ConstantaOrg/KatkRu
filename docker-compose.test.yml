@@ -3,17 +3,20 @@ services:
     image: redis:7.2-alpine
     container_name: redis
     command: redis-server --requirepass ${REDIS_PASSWORD} --appendonly yes
+    volumes:
+      - test_redis_data:/data
     environment:
       - REDIS_PASSWORD=${REDIS_PASSWORD}
     networks:
-      - net_con
+      net_con:
 
   es01:
     container_name: es01
     image: docker.elastic.co/elasticsearch/elasticsearch:${ELASTIC_VERSION}
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:9200 || exit 1"]
-      interval: 8s
+#      interval: 3m в проде
+      interval: 10s
       timeout: 10s
       retries: 15
     environment:
@@ -26,7 +29,10 @@ services:
       - xpack.security.transport.ssl.enabled=false
     volumes:
       - test_esdata01:/usr/share/elasticsearch/data
-    mem_limit: 3g
+    mem_limit: 16g
+    # внешний | внутренний
+    ports:
+      - "127.0.0.1:9200:9200"
     networks:
       net_con:
 
@@ -43,7 +49,7 @@ services:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "curl -s -I http://localhost:5601 | grep -q 'HTTP/1.1 302 Found'"]
-      interval: 8s
+      interval: 10s
       timeout: 10s
       retries: 15
     volumes:
@@ -62,14 +68,15 @@ services:
       - POSTGRES_DB=test_${PG_DB}
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${PG_ADMIN}"]
-      interval: 5s
+      interval: 15s
       timeout: 5s
       retries: 10
     volumes:
       - test_pg_data:/var/lib/postgresql/data
       - ./secrets/test_${DUMPS_DIR}:/docker-entrypoint-initdb.d
+    # внешний | внутренний
     ports:
-      - '5431:5432'
+      - "127.0.0.1:5431:5432"
     networks:
       net_con:
 
@@ -84,30 +91,45 @@ services:
         condition: service_healthy
       es01:
         condition: service_healthy
+      kibana01:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    volumes:
+      - ./logs:/app/logs
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8000/api/v1/healthcheck || exit 1"]
-      interval: 5s
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/public/healthcheck')\""]
+      interval: 30s
       timeout: 5s
-      retries: 10
+      retries: 3
     secrets:
       - .env.test
+      - private_key.pem
+      - public_key.pem
+    ports:
+      - "127.0.0.1:8100:8000"
     networks:
       net_con:
 
-
 volumes:
-  test_kibana01:
-    driver: local
   test_esdata01:
     driver: local
   test_pg_data:
+    driver: local
+  test_redis_data:
+    driver: local
+  test_kibana01:
     driver: local
 
 networks:
   net_con:
     driver: bridge
-    name: katk_net
+    name: test_katk_net
 
 secrets:
   .env.test:
     file: .env.test
+  private_key.pem:
+    file: ./secrets/keys/private_jwt.pem
+  public_key.pem:
+    file: ./secrets/keys/public_jwt.pem

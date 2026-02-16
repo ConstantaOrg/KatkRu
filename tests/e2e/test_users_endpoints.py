@@ -10,7 +10,7 @@ def _new_creds():
 @pytest.fixture(autouse=True)
 def patch_users_select(monkeypatch):
     async def select_with_role(self, email):
-        row = await self.conn.fetchrow("SELECT id, passw, role FROM users WHERE email=$1", email)
+        row = await self.conn.fetchrow("SELECT id, passw, role, building_id FROM users WHERE email=$1", email)
         if row is None:
             return None
         data = dict(row)
@@ -21,11 +21,11 @@ def patch_users_select(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_sign_up_then_login_and_logout(client):
+async def test_sign_up_then_login_and_logout(client, seed_info):
     creds = _new_creds()
     import core.data.sql_queries.users_sql as u_sql
     assert u_sql.encryption.hash("probe") == "hashed::probe"
-    reg = await client.post("/api/v1/server/users/sign_up", json={**creds, "name": "Tester"})
+    reg = await client.post("/api/v1/server/users/sign_up", json={**creds, "name": "Tester", "building_id": seed_info["building_id"]})
     assert reg.status_code == 200
 
     login = await client.post("/api/v1/public/users/login", json=creds)
@@ -38,18 +38,18 @@ async def test_sign_up_then_login_and_logout(client):
 
 
 @pytest.mark.asyncio
-async def test_sign_up_duplicate_email(client):
+async def test_sign_up_duplicate_email(client, seed_info):
     creds = _new_creds()
-    reg1 = await client.post("/api/v1/server/users/sign_up", json={**creds, "name": "Tester"})
+    reg1 = await client.post("/api/v1/server/users/sign_up", json={**creds, "name": "Tester", "building_id": seed_info["building_id"]})
     assert reg1.status_code == 200
-    reg2 = await client.post("/api/v1/server/users/sign_up", json={**creds, "name": "Tester"})
+    reg2 = await client.post("/api/v1/server/users/sign_up", json={**creds, "name": "Tester", "building_id": seed_info["building_id"]})
     assert reg2.status_code == 409
 
 
 @pytest.mark.asyncio
-async def test_login_wrong_password(client):
+async def test_login_wrong_password(client, seed_info):
     creds = _new_creds()
-    await client.post("/api/v1/server/users/sign_up", json={**creds, "name": "Tester"})
+    await client.post("/api/v1/server/users/sign_up", json={**creds, "name": "Tester", "building_id": seed_info["building_id"]})
     bad = {**creds, "passw": "wrongpass"}
     resp = await client.post("/api/v1/public/users/login", json=bad)
     assert resp.status_code == 401

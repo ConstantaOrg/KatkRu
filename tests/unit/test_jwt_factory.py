@@ -96,7 +96,7 @@ async def test_issue_aT_rT_existing_session(jwt_mod):
     auth = DummyAuth()
     auth.sessions["sess-existing"] = "stub-hash"
     db = DummyDb(auth)
-    token_schema = type("TS", (), {"id": 1, "role": "methodist", "user_agent": "ua", "ip": "127.0.0.1"})
+    token_schema = type("TS", (), {"id": 1, "role": "methodist", "building_id": 1, "user_agent": "ua", "ip": "127.0.0.1"})
     aT, rT = await jwt_mod.issue_aT_rT(db, token_schema)
     decoded = jwt.decode(aT, jwt_mod.env.JWTs.public_key, algorithms=[jwt_mod.env.JWTs.algorithm])
     assert decoded["sub"] == "1"

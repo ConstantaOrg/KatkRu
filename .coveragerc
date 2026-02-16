@@ -2,6 +2,7 @@
 source = core
 omit =
     core/api/one_time_scripts/*
+    core/api/metrics_endpoint.py
     core/utils/logger.py
 
 

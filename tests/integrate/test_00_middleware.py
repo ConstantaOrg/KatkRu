@@ -14,25 +14,27 @@ def _headers_with_ip(ip: str) -> dict[str, str]:
     return {"X-Forwarded-For": ip}
 
 
-def _expired_access_token(sub: str, role: str, session_id: str) -> str:
+def _expired_access_token(sub: str, role: str, session_id: str, bid: str = "1") -> str:
     past = datetime.now(timezone.utc) - timedelta(hours=1)
     payload = {
         "sub": sub,
         "role": role,
         "s_id": session_id,
+        "bid": bid,
         "iat": int(past.timestamp()) - 100,
         "exp": int(past.timestamp()),
     }
     return jwt.encode(payload, env.JWTs.private_key, algorithm=env.JWTs.algorithm)
 
 
-def _valid_access_token(sub: str, role: str, session_id: str) -> str:
+def _valid_access_token(sub: str, role: str, session_id: str, bid: str = "1") -> str:
     now = datetime.now(timezone.utc)
     future = now + timedelta(hours=1)
     payload = {
         "sub": sub,
         "role": role,
         "s_id": session_id,
+        "bid": bid,
         "iat": int(now.timestamp()),
         "exp": int(future.timestamp()),
     }

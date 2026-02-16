@@ -149,7 +149,7 @@ async def test_timetable_standard_import(client, pg_pool, seed_info):
     with tmp_path.open("rb") as f:
         files = {"file_obj": (tmp_path.name, f, "application/vnd.openxmlformats-officedocument.wordprocessingml.document")}
         resp = await client.post(
-            "/api/v1/private/timetable/standard/import",
+            "/api/v1/private/ttable/versions/standard/import",
             params={"smtr": "1", "bid": seed_info["building_id"]},
             files=files,
         )

@@ -24,7 +24,8 @@ async def test_groups_endpoint_with_independent_validation(client, seed_info):
     # Make actual API call
     resp = await client.post(
         "/api/v1/private/groups/get",
-        params={"bid": seed_info["building_id"], "limit": 10, "offset": 0},
+        params={"limit": 10, "offset": 0},
+        json={"is_active": None},
     )
     
     # Validate HTTP status independently
@@ -142,7 +143,8 @@ async def test_framework_independence_demonstration(client, seed_info):
     # Make API call
     resp = await client.post(
         "/api/v1/private/groups/get",
-        params={"bid": seed_info["building_id"], "limit": 10, "offset": 0},
+        params={"limit": 10, "offset": 0},
+        json={"is_active": None},
     )
     
     response_data = resp.json()

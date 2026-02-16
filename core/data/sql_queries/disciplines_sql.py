@@ -20,13 +20,14 @@ class DisciplinesQueries:
             param_num += 1
         if group_name is not None:
             group_filter = f'JOIN groups_disciplines gd on d.id = gd.discipline_id AND gd.group_id = (SELECT id FROM groups WHERE name = ${param_num})'
+            filter_args.append(group_name)
 
         query = f'''
         SELECT d.id, d.title, d.is_active FROM disciplines d
         {group_filter}
         {is_active_filter}
         LIMIT $1 OFFSET $2'''
-        res = await self.conn.fetch(query, limit, offset)
+        res = await self.conn.fetch(query, limit, offset, *filter_args)
         return res
 
     async def add(self, disp_title: str):

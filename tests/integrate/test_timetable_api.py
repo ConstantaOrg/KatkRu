@@ -21,8 +21,8 @@ async def test_public_timetable_get(client, pg_pool, seed_info):
             seed_info["hist_id"],
         )
 
-    body = {"building_id": seed_info["building_id"], "group": "GR1"}
-    resp = await client.post("/api/v1/public/timetable/get", json=body)
+    body = {"group": "GR1"}
+    resp = await client.post("/api/v1/public/ttable/get", json=body)
 
     # Validate response structure
     assert resp.status_code == 200
@@ -54,8 +54,8 @@ async def test_public_timetable_get_empty_result(client, seed_info):
     validator.add_rule(ValidationRule("schedule", list, required=True))
     
     # Request timetable for non-existent group
-    body = {"building_id": seed_info["building_id"], "group": "NONEXISTENT"}
-    resp = await client.post("/api/v1/public/timetable/get", json=body)
+    body = {"group": "NONEXISTENT"}
+    resp = await client.post("/api/v1/public/ttable/get", json=body)
 
     # Validate response structure
     assert resp.status_code == 200
@@ -79,12 +79,12 @@ async def test_public_timetable_get_different_query_parameters(client, seed_info
     
     # Test with different parameter combinations
     test_cases = [
-        {"building_id": seed_info["building_id"], "group": "GR1"},
-        {"building_id": seed_info["building_id"], "group": "GR1", "week_day": 1},
+        {"group": "GR1"},
+        {"group": "GR1", "week_day": 1},
     ]
     
     for body in test_cases:
-        resp = await client.post("/api/v1/public/timetable/get", json=body)
+        resp = await client.post("/api/v1/public/ttable/get", json=body)
         
         # Validate response structure for each parameter combination
         assert resp.status_code == 200, f"Failed for parameters: {body}"

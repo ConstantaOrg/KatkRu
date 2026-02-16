@@ -96,7 +96,7 @@ async def issue_aT_rT(db: PgSqlDep, token_schema: TokenPayloadSchema):
     frame_token = {
         'sub': str(token_schema.id),
         'role': token_schema.role,
-        'bid': str(token_schema.bid),
+        'bid': str(token_schema.building_id),
     }
     hashed_rT = await issue_token(frame_token, 'refresh_token', db=db, session_id=session_id, client=token_schema)
     encoded_aT = await issue_token(frame_token, 'access_token', session_id=session_id)

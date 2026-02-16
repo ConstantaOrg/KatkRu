@@ -4,7 +4,7 @@ from starlette.requests import Request
 from core.data.postgre import PgSqlDep
 from core.schemas.cookie_settings_schema import JWTCookieDep
 from core.schemas.n8n_ui.groups_schema import GroupAddSchema, GroupUpdateSchema, GroupFilterSchema
-from core.schemas.schemas2depends import GroupPagenDep
+from core.schemas.schemas2depends import GroupPagenSchema
 from core.response_schemas.groups_tab import GroupsGetResponse, GroupsUpdateResponse
 from core.utils.anything import Roles
 from core.utils.lite_dependencies import role_require
@@ -18,7 +18,7 @@ router = APIRouter(prefix='/private/groups', tags=['Groups👥👥👥'])
 
 
 @router.post('/get', response_model=GroupsGetResponse, dependencies=[Depends(role_require(Roles.methodist, Roles.read_all))])
-async def get_groups(body: GroupFilterSchema, pagen: GroupPagenDep, db: PgSqlDep, request: Request, _: JWTCookieDep):
+async def get_groups(body: GroupFilterSchema, pagen: GroupPagenSchema, db: PgSqlDep, request: Request, _: JWTCookieDep):
     groups = await db.groups.get_all(request.state.building_id, body.is_active, pagen.limit, pagen.offset)
     log_event(f"Отобразили группы | user_id: \033[31m{request.state.user_id}\033[0m", request=request)
     return {'groups': [dict(group) for group in groups]}

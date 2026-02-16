@@ -142,10 +142,11 @@ def get_elastic_settings(settings: Settings) -> dict:
     cfg = APP_MODE_CONFIG[settings.app_mode]
 
     host = getattr(settings, cfg["es_host"])
+    port = getattr(settings, cfg["es_port"])
     cert = getattr(settings, cfg["es_cert"])
     scheme = cfg["es_scheme"]
 
-    es_link = f"{scheme}://{host}:{settings.elastic_port}"
+    es_link = f"{scheme}://{host}:{port}"
     es_settings = {
         "hosts": [es_link],
         # "basic_auth": (settings.elastic_user, settings.elastic_password),
