@@ -271,3 +271,9 @@ class TimetableQueries:
         '''
         records = await self.conn.fetch(query, ttable_id, building_id, TimetableVerStatuses.accepted)
         return records
+
+    async def switch_ver_status(self, ttable_id: int, building_id: int):
+        """2 защиты: building_id - если НСД доступ; is_commited != true - Нельзя изменить статус утверждённого расписния"""
+        query = 'UPDATE ttable_versions SET status_id = $3 WHERE id = $1 AND building_id = $2 AND is_commited != true RETURNING id'
+        record = await self.conn.fetchval(query, ttable_id, building_id, TimetableVerStatuses.pending)
+        return record

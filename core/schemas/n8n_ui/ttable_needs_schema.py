@@ -1,7 +1,7 @@
 import datetime
 from typing import Literal
 
-from pydantic import BaseModel, Field, field_validator, ValidationError
+from pydantic import BaseModel, Field, field_validator
 
 
 class CreateTtableSchema(BaseModel):
@@ -12,10 +12,9 @@ class CreateTtableSchema(BaseModel):
     def actual_date(cls, v):
         """"""
         "Актуальна ли назначенная дата для расписания, Если это не standard type"
-        if not isinstance(v, datetime.date) and datetime.datetime.now().date() <= v:
+        if isinstance(v, datetime.date) and datetime.datetime.now().date() <= v:
             return v
-
-        raise ValidationError('Введите актуальную дату для расписания')
+        raise ValueError('Введите актуальную дату для расписания')
 
 class StdTtableSchema(BaseModel):
     ttable_id: int

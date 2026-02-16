@@ -9,11 +9,11 @@ from core.config_dir.config import ElasticDep, env
 from core.config_dir.index_settings import SpecIndex, GroupIndex, LogIndex, TeachersIndex, DisciplinesIndex
 from core.data.postgre import PgSql
 from core.response_schemas.elastic_search import (
-    AutocompleteSearchResponse, DeepSearchResponse
+    AutocompleteSearchResponse, DeepSearchResponse, GroupSearchResponse
 )
 from core.schemas.cookie_settings_schema import JWTCookieDep
 from core.schemas.elastic_schema import MethodSearchSchema
-from core.schemas.schemas2depends import PagenDep
+from core.schemas.schemas2depends import PagenSchema
 from core.schemas.specs_schema import AutocompleteSearchSchema, DeepSearchSchema, BaseSpecSearchSchema
 from core.utils.anything import Roles
 from core.utils.lite_dependencies import role_require
@@ -101,7 +101,7 @@ async def fast_search(body: AutocompleteSearchSchema, request: Request, aioes: E
 
 
 @router.post("/public/elastic/ext_spec", response_model=DeepSearchResponse)
-async def deep_search(body: DeepSearchSchema, pagen: PagenDep, aioes: ElasticDep, request: Request):
+async def deep_search(body: DeepSearchSchema, pagen: PagenSchema, aioes: ElasticDep, request: Request):
     """
     код специальности и название склеить на фронте(возможно)
     """
@@ -121,13 +121,13 @@ async def deep_search(body: DeepSearchSchema, pagen: PagenDep, aioes: ElasticDep
         for rec in search_res
     )}
 
-@router.post("/public/elastic/search_group", response_model=AutocompleteSearchResponse)
+@router.post("/public/elastic/search_group", response_model=GroupSearchResponse)
 async def fast_search(body: BaseSpecSearchSchema, request: Request, aioes: ElasticDep):
     search_schema = GroupIndex.search_ptn(body.search_term)
-    raw_res = await aioes.search(index=env.search_index_spec, query=search_schema, size=10, filter_path='hits.hits')
+    raw_res = await aioes.search(index=env.search_index_group, query=search_schema, size=10, filter_path='hits.hits')
     search_res = raw_res['hits']['hits']
 
-    log_event(f'Поисковая выдача: search_term: "{body.search_term}"; length hits: {len(search_res)}; \033[33m{body.search_mode}\033[0m', request=request, level='WARNING')
+    log_event(f'Поисковая выдача groups: search_term: "{body.search_term}"; length hits: {len(search_res)}', request=request, level='WARNING')
     return {"search_res": tuple(
         {'id': rec['_id'], 'group_name': rec['_source']['group_name']}
         for rec in search_res
@@ -135,7 +135,7 @@ async def fast_search(body: BaseSpecSearchSchema, request: Request, aioes: Elast
 
 
 @router.post('/private/elastic/methodist_search', dependencies=[Depends(role_require(Roles.methodist, Roles.read_all))])
-async def multi_search(body: MethodSearchSchema, pagen: PagenDep, aioes: ElasticDep, request: Request, _: JWTCookieDep):
+async def multi_search(body: MethodSearchSchema, pagen: PagenSchema, aioes: ElasticDep, request: Request, _: JWTCookieDep):
     """
     Универсальный эндпоинт для поиска по преподавателям, группам и дисциплинам.
     """

@@ -339,21 +339,82 @@ class N8NIUQueries:
         return card_ids, None
 
 
-    async def switch_as_edit(self, card_hist_id: int):
-        query = 'UPDATE cards_states_history SET status_id = $2 WHERE id = $1'
-        await self.conn.execute(query, card_hist_id, CardsStatesStatuses.edited)
-
-
-    async def bulk_delete_cards(self, card_ids: list[int]):
-        query = 'DELETE FROM cards_states_details WHERE card_hist_id = ANY($1::int[])'
-        await self.conn.execute(query, card_ids)
-
-
-    async def group_box_w_disciplines(self, group_id: int):
+    async def switch_as_edit(self, card_hist_id: int, ttable_id: int):
         query = '''
-        SELECT gs.discipline_id, d.name FROM groups_disciplines gs
+        WITH ver_check AS (
+            SELECT id, is_commited, status_id FROM ttable_versions WHERE id = $4
+        ),
+        update_result AS (
+            UPDATE cards_states_history 
+            SET status_id = $2
+            WHERE id = $1
+              AND EXISTS (
+                SELECT 1 FROM ver_check 
+                WHERE is_commited = false OR status_id != $3
+              )
+            RETURNING id
+        )
+        SELECT 
+            ur.id IS NOT NULL as updated,
+            vc.is_commited,
+            vc.status_id
+        FROM ver_check vc
+        LEFT JOIN update_result ur ON true
+        '''
+        res = await self.conn.fetchrow(query, card_hist_id, CardsStatesStatuses.edited, TimetableVerStatuses.accepted, ttable_id)
+        
+        if res['updated']:
+            return True
+        
+        # Проверяем, почему не обновилось
+        if res['is_commited'] and res['status_id'] == TimetableVerStatuses.accepted:
+            return False  # Версия заблокирована
+        
+        return True  # Другая причина (например, карточка не найдена)
+
+
+    async def bulk_delete_cards(self, card_ids: list[int], ttable_id: int):
+        query = '''
+        WITH ver_check AS (
+            SELECT id, is_commited, status_id
+            FROM ttable_versions
+            WHERE id = $2
+        ),
+        delete_result AS (
+            DELETE FROM cards_states_details
+            WHERE card_hist_id = ANY($1::int[])
+              AND EXISTS (
+                SELECT 1 FROM ver_check 
+                WHERE is_commited = false OR status_id != $3
+              )
+            RETURNING card_hist_id
+        )
+        SELECT 
+            COUNT(dr.card_hist_id) as deleted_count,
+            vc.is_commited,
+            vc.status_id
+        FROM ver_check vc
+        LEFT JOIN delete_result dr ON true
+        GROUP BY vc.is_commited, vc.status_id
+        '''
+        res = await self.conn.fetchrow(query, card_ids, ttable_id, TimetableVerStatuses.accepted)
+        
+        if res['deleted_count'] > 0:
+            return res['deleted_count']
+        
+        # Проверяем, почему не удалилось
+        if res['is_commited'] and res['status_id'] == TimetableVerStatuses.accepted:
+            return False  # Версия заблокирована
+        
+        return 0  # Карточки не найдены или уже удалены
+
+
+    async def group_box_w_disciplines(self, group_id: int, limit: int, offset: int):
+        query = '''
+        SELECT gs.discipline_id, d.title FROM groups_disciplines gs
         JOIN disciplines d ON gs.discipline_id = d.id
         WHERE gs.group_id = $1
+        LIMIT $2 OFFSET $3
         '''
-        res = await self.conn.fetch(query, group_id)
+        res = await self.conn.fetch(query, group_id, limit, offset)
         return res

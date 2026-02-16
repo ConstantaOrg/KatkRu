@@ -24,3 +24,8 @@ class BulkCardsSchema(BaseModel):
 "Для бульк удаления"
 class DelCardsSchema(BaseModel):
     card_ids: list[int]
+    ttable_id: int
+
+class EditCardSchema(BaseModel):
+    card_hist_id: int
+    ttable_id: int

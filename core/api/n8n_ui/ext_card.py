@@ -7,7 +7,7 @@ from core.data.postgre import PgSqlDep
 from core.response_schemas.n8n_ui import CardsHistoryResponse, CardsGetByIdResponse, CardsContentResponse, \
     CardsAcceptResponse
 from core.schemas.cookie_settings_schema import JWTCookieDep
-from core.schemas.n8n_ui.cards_schemas import SaveCardSchema, BulkCardsSchema, DelCardsSchema
+from core.schemas.n8n_ui.cards_schemas import SaveCardSchema, BulkCardsSchema, DelCardsSchema, EditCardSchema
 from core.schemas.n8n_ui.ttable_needs_schema import ExtCardStateSchema
 from core.schemas.schemas2depends import PagenDep
 from core.utils.anything import Roles
@@ -99,11 +99,19 @@ async def switch_card_status(card_hist_id: Annotated[int, Body(embed=True)], db:
 
 
 @router.put('/switch_as_edit', dependencies=[Depends(role_require(Roles.methodist))], response_model=CardsAcceptResponse)
-async def switch_card_status(card_hist_id: Annotated[int, Body(embed=True)], db: PgSqlDep, _: JWTCookieDep, request: Request):
-    """Поменять статус карточки на 'Редактировано'"""
-    await db.n8n_ui.switch_as_edit(card_hist_id)
-    log_event(f'Карточка \033[33m#{card_hist_id}\033[0m Теперь со статусом "Edit"; user_id: \033[33m{request.state.user_id}\033[0m', request=request)
-    return {'success': True, 'message': f'Карточка {card_hist_id} теперь в статусе "Редактировано"'}
+async def switch_card_status(body: EditCardSchema, db: PgSqlDep, _: JWTCookieDep, request: Request):
+    """
+    Поменять статус карточки на 'Редактировано'
+    Возвращает True если операция выполнена, False если версия заблокирована.
+    """
+    result = await db.n8n_ui.switch_as_edit(body.card_hist_id, body.ttable_id)
+    
+    if result is False:
+        log_event(f'Попытка изменить карточку в утверждённой версии | card_hist_id: \033[33m{body.card_hist_id}\033[0m; ttable_id: \033[32m{body.ttable_id}\033[0m; user_id: \033[33m{request.state.user_id}\033[0m', request=request, level='WARNING')
+        raise HTTPException(status_code=403, detail='Версия расписания уже утверждена, изменения запрещены')
+    
+    log_event(f'Карточка \033[33m#{body}\033[0m Теперь со статусом "Edit"; user_id: \033[33m{request.state.user_id}\033[0m', request=request)
+    return {'success': True, 'message': f'Карточка {body} теперь в статусе "Редактировано"'}
 
 
 @router.post('/bulk_add', dependencies=[Depends(role_require(Roles.methodist))])
@@ -125,13 +133,22 @@ async def bulk_add_cards_(body: BulkCardsSchema, db: PgSqlDep, request: Request,
 
 @router.delete('/bulk_del', dependencies=[Depends(role_require(Roles.methodist))])
 async def bulk_del_cards(body: DelCardsSchema, request: Request, db: PgSqlDep, _: JWTCookieDep):
-    await db.n8n_ui.bulk_delete_cards(body.card_ids)
-    log_event(f'Удалили карточки: {body.card_ids}', request=request)
-    return {'success': True, 'message': 'Карточки удалены'}
+    """
+    Массовое удаление карточек.
+    Возвращает количество удаленных записей или False если версия заблокирована.
+    """
+    result = await db.n8n_ui.bulk_delete_cards(body.card_ids, body.ttable_id)
+    
+    if result is False:
+        log_event(f'Попытка удалить карточки в утверждённой версии | card_ids: {body.card_ids}; ttable_id: \033[35m{body.ttable_id}\033[0m; user_id: \033[33m{request.state.user_id}\033[0m', request=request, level='WARNING')
+        raise HTTPException(status_code=403, detail='Версия расписания уже утверждена, изменения запрещены')
+    
+    log_event(f'Удалили {result} карточек: {body.card_ids}', request=request)
+    return {'success': True, 'message': f'Удалено карточек: {result}'}
 
 
 @router.get('/group-box_w_disciplines', dependencies=[Depends(role_require(Roles.methodist, Roles.read_all))])
-async def get_group_box_w_disciplines(group_id: int, db: PgSqlDep, request: Request, _: JWTCookieDep):
-    relevant_disciplines = await db.n8n_ui.group_box_w_disciplines(group_id)
+async def get_group_box_w_disciplines(group_id: int, pagen: PagenDep, db: PgSqlDep, request: Request, _: JWTCookieDep):
+    relevant_disciplines = await db.n8n_ui.group_box_w_disciplines(group_id, pagen.limit, pagen.offset)
     log_event(f'Показали "ящик" с дисциплинами | group_id: \033[32m{group_id}\033[0m', request=request)
     return {'group_box': relevant_disciplines}

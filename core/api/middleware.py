@@ -65,7 +65,7 @@ class AuthUXASGIMiddleware:
         request.state.building_id = -1
 
         url = request.url.path
-        "Обращения Сервера / Докер-сети"
+        "Обращения Сервера(под-адрес /server) доступен для allowed_ips"
         if request.state.client_ip in env.allowed_ips:
             await self.app(scope, receive, send)
             return

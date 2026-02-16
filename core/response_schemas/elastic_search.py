@@ -11,11 +11,19 @@ from . import BaseResponse, SuccessResponse
 
 class SearchResultItem(BaseResponse):
     """
-    Элемент результата поиска.
+    Элемент результата поиска специальности.
     """
     id: str = Field(..., description="ID специальности")
     spec_code: str = Field(..., description="Код специальности")
     title: str = Field(..., description="Название специальности")
+
+
+class GroupSearchResultItem(BaseResponse):
+    """
+    Элемент результата поиска группы.
+    """
+    id: str = Field(..., description="ID группы")
+    group_name: str = Field(..., description="Название группы")
 
 
 class AutocompleteSearchResponse(BaseResponse):
@@ -69,6 +77,27 @@ class DeepSearchResponse(BaseResponse):
     )
 
 
+class GroupSearchResponse(BaseResponse):
+    """
+    Ответ для POST /public/elastic/search_group
+    Быстрый поиск групп для автодополнения.
+    """
+    search_res: Tuple[GroupSearchResultItem, ...] = Field(
+        ...,
+        description="Результаты поиска групп (до 10 элементов)",
+        example=(
+            {
+                "id": "1",
+                "group_name": "23И1"
+            },
+            {
+                "id": "2",
+                "group_name": "22ПО1"
+            }
+        )
+    )
+
+
 class ElasticInitResponse(SuccessResponse):
     """
     Ответ для инициализации Elasticsearch индекса.
@@ -93,7 +122,9 @@ class ElasticInitResponse(SuccessResponse):
 # Экспорт схем
 __all__ = [
     "SearchResultItem",
+    "GroupSearchResultItem",
     "AutocompleteSearchResponse",
     "DeepSearchResponse",
+    "GroupSearchResponse",
     "ElasticInitResponse"
 ]
