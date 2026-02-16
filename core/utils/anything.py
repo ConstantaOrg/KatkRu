@@ -35,7 +35,7 @@ class TimetableVerStatuses:
 class CardsStatesStatuses:
     accepted: int = 1  # Утверждено
     edited: int = 2    # Редактировано
-    draft: int = 3     # Не трогали
+    draft: int = 3     # Не трогали/ по стандартному расписанию
 
 @dataclass
 class Roles:
