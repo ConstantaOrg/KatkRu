@@ -64,14 +64,14 @@ def patch_encryption(monkeypatch):
     monkeypatch.setattr(jwt_factory, "encryption", fake, raising=False)
     assert users_api.encryption.hash("probe") == "hashed::probe"
 
-    async def fake_reg_user(self, email, passw: str, name: str, avatar: str = None):
+    async def fake_reg_user(self, email, passw: str, name: str, building_id: int, avatar: str = None):
         query = '''
-        INSERT INTO users (email, passw, name, image_path)
-        VALUES($1, $2, $3, $4)
+        INSERT INTO users (email, passw, name, building_id, image_path)
+        VALUES($1, $2, $3, $4, $5)
         ON CONFLICT (email) DO NOTHING 
         RETURNING id
         '''
-        return await self.conn.fetchrow(query, email, fake.hash(passw), name, avatar or default_avatar)
+        return await self.conn.fetchrow(query, email, fake.hash(passw), name, building_id, avatar or default_avatar)
 
     monkeypatch.setattr(u_sql.UsersQueries, "reg_user", fake_reg_user, raising=False)
 

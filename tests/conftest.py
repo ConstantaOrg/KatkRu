@@ -186,12 +186,13 @@ async def db_seed():
 
 
 @pytest.fixture
-async def client(db_seed):
+async def client(db_seed, aioes):
     pg_pool, seed_info = db_seed
     app = FastAPI()
     app.include_router(main_router)
     app.state.pg_pool = pg_pool
     app.state.seed_info = seed_info
+    app.state.es_client = aioes  # Add Elasticsearch client to app state
 
     @app.middleware("http")
     async def add_state(request, call_next):
@@ -200,7 +201,7 @@ async def client(db_seed):
         request.state.user_id = 1
         request.state.session_id = "test-session"
         # Используем test_building_id если установлен, иначе 1
-        request.state.building = getattr(app.state, 'test_building_id', 1)
+        request.state.building_id = getattr(app.state, 'test_building_id', 1)
         return await call_next(request)
 
     async def override_pgsql():
@@ -225,3 +226,21 @@ def seed_info(db_seed):
 @pytest.fixture
 def pg_pool(db_seed):
     return db_seed[0]
+
+
+@pytest.fixture
+async def aioes():
+    """
+    Fixture providing AsyncElasticsearch client for testing.
+    
+    Creates a fresh Elasticsearch client instance for each test.
+    The client is automatically closed after the test completes.
+    """
+    from elasticsearch import AsyncElasticsearch
+    from core.config_dir.config import es_settings
+    
+    client = AsyncElasticsearch(**es_settings)
+    try:
+        yield client
+    finally:
+        await client.close()

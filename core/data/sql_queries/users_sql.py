@@ -41,15 +41,15 @@ class AuthQueries:
             self,
             session_id: str,
             user_id: int,
-            iat: int,
-            exp: int,
+            iat,
+            exp,
             user_agent: str,
             ip: str,
             hashed_rT: str
     ):
         query = '''
         INSERT INTO sessions_users (session_id, user_id, iat, exp, refresh_token, user_agent, ip) VALUES($1,$2,$3,$4,$5,$6,$7)
-        ON CONFLICT (session_id) DO UPDATE SET  iat = $3, exp = $4, refresh_token = $5, ip = $7
+        ON CONFLICT (session_id) DO UPDATE SET iat = $3, exp = $4, refresh_token = $5, user_agent = $6, ip = $7
         '''
         await self.conn.execute(query, session_id, user_id, iat, exp, hashed_rT, user_agent, ip)
 
