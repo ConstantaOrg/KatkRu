@@ -9,7 +9,7 @@ class SpecsQueries:
         """
         Нужно добавить картинку. С3 бакет соответственно
         """
-        query = 'SELECT learn_years, title FROM specialties LIMIT $1 OFFSET $2'
+        query = 'SELECT spec_code, title, img_path FROM specialties LIMIT $1 OFFSET $2'
         res = await self.conn.fetch(query, limit, offset)
         return res
 
