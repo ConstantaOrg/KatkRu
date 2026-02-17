@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, Callable, Any
 
 from starlette.requests import Request
 from starlette.websockets import WebSocket
@@ -8,6 +7,7 @@ from starlette.websockets import WebSocket
 from core.config_dir.config import env
 
 default_avatar = '/users/avatars/default_picture.png'
+accept_card_constraint = 2
 
 @dataclass
 class TokenTypes:
@@ -35,7 +35,7 @@ class TimetableVerStatuses:
 class CardsStatesStatuses:
     accepted: int = 1  # Утверждено
     edited: int = 2    # Редактировано
-    draft: int = 3     # Не трогали
+    draft: int = 3     # Не трогали/ по стандартному расписанию
 
 @dataclass
 class Roles:

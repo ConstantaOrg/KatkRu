@@ -21,16 +21,52 @@ async def test_groups_endpoint_with_independent_validation(client, seed_info):
     This test validates actual API behavior without depending on response models,
     showing how the framework breaks the circular dependency.
     """
-    # Make actual API call
+    # Make actual API call with correct request format
     resp = await client.post(
         "/api/v1/private/groups/get",
-        params={"bid": seed_info["building_id"], "limit": 10, "offset": 0},
+        json={
+            "body": {"is_active": None},
+            "pagen": {"limit": 10, "offset": 0}
+        }
     )
     
     # Validate HTTP status independently
     validator = APIResponseValidator(strict_mode=False)
     status_result = validator.validate_status_code(resp.status_code, [200])
     assert status_result.is_valid, f"Status validation failed: {status_result.errors}"
+    
+    # Get actual response data
+    response_data = resp.json()
+    
+    # Validate essential fields directly (no model dependency)
+    essential_fields = ["groups"]
+    field_result = validator.validate_required_fields(response_data, essential_fields)
+    assert field_result.is_valid, f"Required fields missing: {field_result.errors}"
+    
+    # Validate field types based on actual response structure
+    field_types = {"groups": list}
+    type_result = validator.validate_field_types(response_data, field_types)
+    assert type_result.is_valid, f"Field type validation failed: {type_result.errors}"
+    
+    # Validate business logic independently
+    def groups_list_not_empty(response):
+        return len(response.get("groups", [])) >= 0  # Allow empty but must be list
+    
+    def groups_contain_expected_data(response):
+        groups = response.get("groups", [])
+        if groups:
+            # If groups exist, they should have basic structure
+            first_group = groups[0]
+            return isinstance(first_group, dict) and "name" in first_group
+        return True  # Empty list is valid
+    
+    business_rules = [groups_list_not_empty, groups_contain_expected_data]
+    business_result = validator.validate_business_logic(response_data, business_rules)
+    assert business_result.is_valid, f"Business logic validation failed: {business_result.errors}"
+    
+    # Verify that we can find the expected test group
+    groups = response_data["groups"]
+    assert any(group["name"] == "GR1" for group in groups), "Expected test group 'GR1' not found"
     
     # Get actual response data
     response_data = resp.json()
@@ -80,10 +116,10 @@ async def test_cards_save_multi_response_validation(client, seed_info):
         "ttable_id": seed_info["ttable_id"],
         "lessons": [
             {
-                "position": 2,  # Different position to avoid conflict
+                "position": 3,  # Different position to avoid conflict (seed has 1 and 2)
                 "discipline_id": seed_info["discipline_id"],
                 "teacher_id": seed_info["teacher_id"],
-                "aud": "202",
+                "aud": "303",
                 "is_force": False,
             }
         ],
@@ -139,10 +175,13 @@ async def test_framework_independence_demonstration(client, seed_info):
     This test shows that validation continues to work even when response models
     might be updated or changed, as long as the actual API behavior remains consistent.
     """
-    # Make API call
+    # Make API call with correct request format
     resp = await client.post(
         "/api/v1/private/groups/get",
-        params={"bid": seed_info["building_id"], "limit": 10, "offset": 0},
+        json={
+            "body": {"is_active": None},
+            "pagen": {"limit": 10, "offset": 0}
+        }
     )
     
     response_data = resp.json()

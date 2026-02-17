@@ -180,3 +180,5 @@ filebeat_debug_commands.md
 docs_generator/
 dev_docs/
 metrics_endpoint.py
+grafana/provisioning/alerting/contactpoints.yml
+autoban_iptables/Makefile

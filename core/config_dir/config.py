@@ -30,13 +30,37 @@ WORKDIR = Path(__file__).resolve().parent.parent.parent
 
 encryption = CryptContext(schemes=['argon2'], deprecated='auto')
 
+
 @lru_cache
 def get_pkey():
-    return  (WORKDIR / 'secrets' / 'keys' / 'private_jwt.pem').read_text()
+    """"""
+    "Докер Окружение"
+    docker_secret_path = Path('/run/secrets/private_key.pem')
+    if docker_secret_path.exists():
+        return docker_secret_path.read_text()
+
+    "Локалка"
+    local_path = WORKDIR / 'secrets' / 'keys' / 'private_jwt.pem'
+    if local_path.exists():
+        return local_path.read_text()
+
+    raise FileNotFoundError("Private key not found in Docker secrets or local paths")
+
 
 @lru_cache
 def get_pubkey():
-    return (WORKDIR / 'secrets' / 'keys' / 'public_jwt.pem').read_text()
+    """"""
+    "Докер Окружение"
+    docker_secret_path = Path('/run/secrets/public_key.pem')
+    if docker_secret_path.exists():
+        return docker_secret_path.read_text()
+
+    "Локалка"
+    local_path = WORKDIR / 'secrets' / 'keys' / 'public_jwt.pem'
+    if local_path.exists():
+        return local_path.read_text()
+
+    raise FileNotFoundError("Public key not found in Docker secrets or local paths")
 
 class AuthConfig(BaseModel):
     private_key: str = get_pkey()
@@ -75,6 +99,8 @@ class Settings(BaseSettings):
 
     search_index_spec: str
     search_index_group: str
+    search_index_discip: str
+    search_index_teachers: str
     log_index: str
 
     app_mode: AppMode
@@ -116,10 +142,11 @@ def get_elastic_settings(settings: Settings) -> dict:
     cfg = APP_MODE_CONFIG[settings.app_mode]
 
     host = getattr(settings, cfg["es_host"])
+    port = getattr(settings, cfg["es_port"])
     cert = getattr(settings, cfg["es_cert"])
     scheme = cfg["es_scheme"]
 
-    es_link = f"{scheme}://{host}:{settings.elastic_port}"
+    es_link = f"{scheme}://{host}:{port}"
     es_settings = {
         "hosts": [es_link],
         # "basic_auth": (settings.elastic_user, settings.elastic_password),

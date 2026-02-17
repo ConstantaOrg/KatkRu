@@ -1,10 +1,10 @@
-from typing import Annotated, Optional, AsyncGenerator
+from typing import Annotated
 
-from asyncpg import Connection, Pool, create_pool
+from asyncpg import Connection
 from fastapi.params import Depends
 from starlette.requests import Request
 
-from core.config_dir.config import pool_settings
+
 from core.data.sql_queries.disciplines_sql import DisciplinesQueries
 from core.data.sql_queries.groups_sql import GroupsQueries
 from core.data.sql_queries.n8n_iu_sql import N8NIUQueries
@@ -25,20 +25,6 @@ class PgSql:
         self.groups = GroupsQueries(conn)
         self.teachers = TeachersQueries(conn)
         self.disciplines = DisciplinesQueries(conn)
-
-
-connection: Optional[Pool] = None
-async def set_connection():
-    global connection
-    if connection is None:
-        connection = await create_pool(**pool_settings)
-    return connection
-
-
-async def set_session(request: Request) -> AsyncGenerator[Connection, None]:
-    async with request.app.state.pg_pool.acquire() as session:
-        yield session
-
 
 async def get_pg_pool(request: Request):
     async with request.app.state.pg_pool.acquire() as conn:

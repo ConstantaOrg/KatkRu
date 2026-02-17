@@ -132,10 +132,10 @@ def log_event(event: Any, *args, request: Request | WebSocket=None, level: Liter
 
     meth, url, ip = '', '', ''
     if isinstance(request, Request):
-        meth, url = request.method, str(request.url)
+        meth, url = request.method, str(request.url.path)
         ip = request.state.client_ip if hasattr(request.state, 'client_ip') else get_client_ip(request)
     elif isinstance(request, WebSocket):
-        url, ip = str(request.url), get_client_ip(request)
+        url, ip = str(request.url.path), get_client_ip(request)
 
     message = event % args if args else event
 

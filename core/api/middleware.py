@@ -41,7 +41,7 @@ class ASGILoggingMiddleware:
             duration = time.perf_counter() - start
 
             "Логируем для мониторинга"
-            if env.app_mode != 'local':
+            if env.app_mode != 'local' and request.url.path != '/api/v1/public/healthcheck':
                 log_event(f'HTTP \033[33m{request.method}\033[0m {request.url.path}', request=request, http_status=status_code, response_time=round(duration, 4))
             if duration > 7.0:
                 log_event(f'Долгий ответ | {duration: .4f}', request=request, level='WARNING')
@@ -62,16 +62,16 @@ class AuthUXASGIMiddleware:
         request.state.role = 'student'
         request.state.user_id = 1
         request.state.session_id = '1'
+        request.state.building_id = -1
 
         url = request.url.path
-        "Обращения Сервера / Докер-сети"
+        "Обращения Сервера(под-адрес /server) доступен для allowed_ips"
         if request.state.client_ip in env.allowed_ips:
             await self.app(scope, receive, send)
             return
 
         "Не нуждаются в авторизации, Если юрл в белом списке"
         if any(url.startswith(prefix) for prefix in ('/api/v1/public', )):
-            log_event("Публичный Юрл", request=request)
             await self.app(scope, receive, send)
             return
 
@@ -105,4 +105,5 @@ class AuthUXASGIMiddleware:
         request.state.user_id = int(access_token['sub'])
         request.state.session_id = access_token['s_id']
         request.state.role = access_token['role']
+        request.state.building_id = int(access_token['bid'])
         await self.app(scope, receive, send)

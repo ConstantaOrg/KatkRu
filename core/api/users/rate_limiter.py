@@ -10,7 +10,7 @@ def rate_limit(max_attempts: int, window_seconds: int):
     def decorator(func):
         @wraps(func)
         async def wrapper(*args, **kwargs):
-            request = kwargs.get('request') or args[2]  # Получаем request
+            request = kwargs.get('request') or args[0]  # Получаем request
             client_ip = request.state.client_ip
 
             async with get_redis_connection() as redis:
@@ -24,7 +24,7 @@ def rate_limit(max_attempts: int, window_seconds: int):
                         detail=f"Слишком много попыток входа от имени этого пользователя. Попробуйте позже"
                     )
 
-                # Выполняем оригинальную функцию
+                "Выполняем сам запрос"
                 try:
                     result = await func(*args, **kwargs)
                     # Успешный логин - сбрасываем счетчик

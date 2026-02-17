@@ -1,6 +1,6 @@
 import pytest
 
-from core.api.timetable.ttable_parser import day_weeks, day_to_index, raw_values2db_ids_handler
+from core.api.ttable_versions.ttable_parser import day_weeks, day_to_index, raw_values2db_ids_handler
 
 
 class _FakeConn:

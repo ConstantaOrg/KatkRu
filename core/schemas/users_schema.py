@@ -39,6 +39,7 @@ class ValidatePasswSchema(BaseModel):
 class TokenPayloadSchema(BaseModel):
     id: int
     role: Literal['methodist', 'read_all']
+    building_id: int
     user_agent: str = Field(max_length=200)
     ip: str = Field(max_length=45)  # IPv6 может быть до 45 символов
 
@@ -53,7 +54,7 @@ class TokenPayloadSchema(BaseModel):
 
 
 class UpdatePasswSchema(ValidatePasswSchema):
-    reset_token: str
+    user_id: int
 
 class UserLogInSchema(BaseModel):
     email: EmailStr
@@ -62,6 +63,7 @@ class UserLogInSchema(BaseModel):
 class UserRegSchema(ValidatePasswSchema):
     email: EmailStr
     name: str = Field(max_length=64)
+    building_id: int
 
 
 class RecoveryPrepareSchema(BaseModel):

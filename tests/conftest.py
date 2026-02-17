@@ -21,6 +21,7 @@ from core.utils.logger import log_event
 
 @pytest.fixture(scope="session", autouse=True)
 def ensure_test_database():
+    os.environ['PYTHONUTF8'] = '1'
     assert isinstance(env.pg_db, str), "env.pg_db is not set"
     assert env.pg_db.startswith("test_"), f"Refusing to run tests against non-test database: {env.pg_db}"
 
@@ -58,6 +59,7 @@ async def _truncate_and_seed(conn: asyncpg.Connection):
         "teachers_weekend",
         "teachers_buildings",
         "teachers",
+        "groups_disciplines",
         "groups",
         "specialties",
         "disciplines",
@@ -85,10 +87,23 @@ async def _truncate_and_seed(conn: asyncpg.Connection):
     )["id"]
     user_id = (
         await conn.fetchrow(
-            "INSERT INTO users (name, email, passw, role) "
-            "VALUES ('Test User', 'test@example.com', 'pass', 'methodist') RETURNING id"
+            "INSERT INTO users (name, email, passw, role, building_id) "
+            "VALUES ('Test User', 'test@example.com', 'pass', 'methodist', $1) RETURNING id",
+            building_id
         )
     )["id"]
+    
+    # Добавляем тестовые данные для Elasticsearch индексов
+    # Specialties (специальности)
+    await conn.execute(
+        "INSERT INTO specialties (spec_code, title, learn_years, description, full_time, free_form, evening_form, cost_per_year) VALUES "
+        "('09.02.07', 'Информационные системы и программирование', 3, 'Подготовка специалистов по разработке ИС', true, true, false, 120000), "
+        "('09.02.03', 'Программирование в компьютерных системах', 3, 'Подготовка программистов', true, true, false, 115000), "
+        "('10.02.05', 'Обеспечение информационной безопасности', 3, 'Подготовка специалистов по ИБ', true, false, false, 130000), "
+        "('38.02.01', 'Экономика и бухгалтерский учет', 2, 'Подготовка бухгалтеров', true, true, true, 100000)"
+    )
+    
+    # Groups (группы)
     group_id = (
         await conn.fetchrow(
             "INSERT INTO groups (name, building_id, is_active) "
@@ -96,16 +111,40 @@ async def _truncate_and_seed(conn: asyncpg.Connection):
             building_id,
         )
     )["id"]
-    discipline_id = (
-        await conn.fetchrow(
-            "INSERT INTO disciplines (title) VALUES ('Math') RETURNING id"
-        )
-    )["id"]
+    await conn.execute(
+        "INSERT INTO groups (name, building_id, is_active) VALUES "
+        "('23И1', $1, true), "
+        "('25Т2', $1, true), "
+        "('22ПО1', $1, true), "
+        "('20.04', $1, true)",
+        building_id
+    )
+    
+    # Teachers (преподаватели)
     teacher_id = (
         await conn.fetchrow(
             "INSERT INTO teachers (fio) VALUES ('Иванов И.И.') RETURNING id"
         )
     )["id"]
+    await conn.execute(
+        "INSERT INTO teachers (fio) VALUES "
+        "('Петров П.П.'), "
+        "('Сидоров С.С.'), "
+        "('Алексеев А.А.')"
+    )
+    
+    # Disciplines (дисциплины)
+    discipline_id = (
+        await conn.fetchrow(
+            "INSERT INTO disciplines (title) VALUES ('Math') RETURNING id"
+        )
+    )["id"]
+    await conn.execute(
+        "INSERT INTO disciplines (title) VALUES "
+        "('ОГСЭ 01 Основы философии'), "
+        "('МДК 01.05 Программирование'), "
+        "('ЕН 02 Математика')"
+    )
 
     std_sched_id = (
         await conn.fetchrow(
@@ -149,9 +188,10 @@ async def _truncate_and_seed(conn: asyncpg.Connection):
         )
     )["id"]
 
+    # Добавляем 2 урока, чтобы карточка могла быть утверждена (минимум accept_card_constraint = 2)
     await conn.execute(
         "INSERT INTO cards_states_details (card_hist_id, discipline_id, position, aud, teacher_id, sched_ver_id, is_force) "
-        "VALUES ($1, $2, 1, '101', $3, $4, false)",
+        "VALUES ($1, $2, 1, '101', $3, $4, false), ($1, $2, 2, '102', $3, $4, false)",
         hist_id,
         discipline_id,
         teacher_id,
@@ -172,24 +212,35 @@ async def _truncate_and_seed(conn: asyncpg.Connection):
     }
 
 
-@pytest.fixture
-async def db_seed():
-    pool = await asyncpg.create_pool(**pool_settings, max_size=10)
-    async with pool.acquire() as conn:
+@pytest.fixture(scope="function")
+async def db_pool():
+    """
+    Создаёт пул соединений для каждого теста.
+    """
+    pool = await asyncpg.create_pool(**pool_settings, max_size=10, min_size=2)
+    yield pool
+    await pool.close()
+
+
+@pytest.fixture(scope="function")
+async def db_seed(db_pool):
+    """
+    Очищает и заполняет БД базовыми тестовыми данными для каждого теста.
+    """
+    async with db_pool.acquire() as conn:
         seed_info = await _truncate_and_seed(conn)
-    try:
-        yield pool, seed_info
-    finally:
-        await pool.close()
+    
+    yield db_pool, seed_info
 
 
-@pytest.fixture
-async def client(db_seed):
+@pytest.fixture(scope="function")
+async def client(db_seed, aioes):
     pg_pool, seed_info = db_seed
     app = FastAPI()
     app.include_router(main_router)
     app.state.pg_pool = pg_pool
     app.state.seed_info = seed_info
+    app.state.es_client = aioes  # Add Elasticsearch client to app state
 
     @app.middleware("http")
     async def add_state(request, call_next):
@@ -197,6 +248,8 @@ async def client(db_seed):
         request.state.client_ip = "127.0.0.1"
         request.state.user_id = 1
         request.state.session_id = "test-session"
+        # Используем test_building_id если установлен, иначе 1
+        request.state.building_id = getattr(app.state, 'test_building_id', 1)
         return await call_next(request)
 
     async def override_pgsql():
@@ -208,14 +261,114 @@ async def client(db_seed):
 
     transport = httpx.ASGITransport(app=app)
     async with httpx.AsyncClient(transport=transport, base_url="http://test") as ac:
+        # Сохраняем ссылку на app в клиенте
+        ac.app = app
         yield ac
 
 
-@pytest.fixture
+@pytest.fixture(scope="function")
 def seed_info(db_seed):
     return db_seed[1]
 
 
-@pytest.fixture
+@pytest.fixture(scope="function")
 def pg_pool(db_seed):
     return db_seed[0]
+
+
+@pytest.fixture(scope='session', autouse=True)
+def prepare_elasticsearch_session():
+    """
+    Initialize Elasticsearch indexes once for the entire test session.
+    
+    This fixture runs once at the start and cleans up indexes synchronously.
+    The actual indexing will happen lazily on first use.
+    """
+    import asyncio
+    from elasticsearch import AsyncElasticsearch
+    from core.config_dir.config import es_settings
+    
+    async def cleanup():
+        # Create ES client
+        aioes = AsyncElasticsearch(**es_settings)
+        
+        try:
+            # Clean up any existing test indexes at session start
+            test_patterns = [
+                "applogsindex-*",
+                "specs-index",
+                "group-index",
+                "teachers-index",
+                "disciplines-index",
+            ]
+            
+            for pattern in test_patterns:
+                try:
+                    await aioes.indices.delete(index=pattern, ignore_unavailable=True)
+                    log_event(f"Deleted index pattern: {pattern}", level='INFO')
+                except Exception as e:
+                    log_event(f"Could not delete {pattern}: {e}", level='DEBUG')
+            
+            log_event("Cleaned up existing Elasticsearch indexes", level='INFO')
+        finally:
+            await aioes.close()
+    
+    # Run cleanup synchronously
+    asyncio.run(cleanup())
+    yield
+
+
+# Global flag to track if we've done the initial ES indexing
+_es_indexed = False
+
+
+@pytest.fixture
+async def aioes(db_pool):
+    """
+    Fixture providing AsyncElasticsearch client for testing.
+    
+    Creates a fresh Elasticsearch client instance for each test.
+    On first use, performs initial indexing from the database.
+    The client is automatically closed after the test completes.
+    """
+    from elasticsearch import AsyncElasticsearch
+    from core.config_dir.config import es_settings
+    from core.api.elastic_search.api_elastic_search import init_elasticsearch_index
+    
+    global _es_indexed
+    
+    client = AsyncElasticsearch(**es_settings)
+    try:
+        # Perform initial indexing only once for the entire test session
+        if not _es_indexed:
+            await init_elasticsearch_index(
+                ["applogsindex-000001", "specs-index", "group-index", "teachers-index", "disciplines-index"],
+                db_pool,
+                client
+            )
+            await client.indices.refresh(index="_all")
+            log_event("Elasticsearch indexed once for test session", level='INFO')
+            _es_indexed = True
+        
+        yield client
+    finally:
+        await client.close()
+
+
+@pytest.fixture(autouse=True)
+async def flush_redis():
+    """
+    Fixture to flush Redis before each test.
+    
+    This ensures test isolation by clearing all Redis data before each test runs.
+    Used by rate limiter and other Redis-dependent features.
+    """
+    from redis.asyncio import Redis
+    from core.config_dir.config import redis_settings
+    
+    redis = Redis(**redis_settings, decode_responses=True)
+    await redis.flushdb()
+    try:
+        yield redis
+    finally:
+        await redis.close()

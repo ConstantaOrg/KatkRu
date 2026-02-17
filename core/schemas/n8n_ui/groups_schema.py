@@ -7,4 +7,6 @@ class GroupUpdateSchema(BaseModel):
 
 class GroupAddSchema(BaseModel):
     group_name: str
-    building_id: int
+
+class GroupFilterSchema(BaseModel):
+    is_active: bool | None = None

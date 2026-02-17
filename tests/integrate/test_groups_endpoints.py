@@ -12,7 +12,10 @@ async def test_groups_get(client, seed_info):
     
     resp = await client.post(
         "/api/v1/private/groups/get",
-        params={"bid": seed_info["building_id"], "limit": 10, "offset": 0},
+        json={
+            "body": {"is_active": None},
+            "pagen": {"limit": 10, "offset": 0}
+        },
     )
     
     # Validate response structure

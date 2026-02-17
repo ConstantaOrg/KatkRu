@@ -15,7 +15,8 @@ services:
     image: docker.elastic.co/elasticsearch/elasticsearch:${ELASTIC_VERSION}
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:9200 || exit 1"]
-      interval: 8s
+#      interval: 3m в проде
+      interval: 10s
       timeout: 10s
       retries: 15
     environment:
@@ -31,7 +32,7 @@ services:
     mem_limit: 16g
     # внешний | внутренний
     ports:
-      - "9200:9200"
+      - "127.0.0.1:9200:9200"
     networks:
       net_con:
 
@@ -48,7 +49,8 @@ services:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "curl -s -I http://localhost:5601 | grep -q 'HTTP/1.1 302 Found'"]
-      interval: 8s
+#      interval: 2m  в проде
+      interval: 10s
       timeout: 10s
       retries: 15
     volumes:
@@ -75,6 +77,7 @@ services:
       - ./logs:/app/logs:ro
     healthcheck:
       test: ["CMD-SHELL", "filebeat test config"]
+#      interval: 1m в проде
       interval: 30s
       timeout: 10s
       retries: 5
@@ -106,7 +109,7 @@ services:
       net_con:
 
   grafana:
-    image: grafana/grafana:10.2.0
+    image: grafana/grafana:11.0.0
     container_name: grafana
     depends_on:
       es01:
@@ -134,7 +137,7 @@ services:
       - POSTGRES_DB=${PG_DB}
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${PG_ADMIN}"]
-      interval: 5s
+      interval: 15s
       timeout: 5s
       retries: 10
     volumes:
@@ -148,6 +151,8 @@ services:
 
   web_app:
     build: .
+    container_name: web_app
+    restart: on-failure
     environment:
       - ENV_FILE=/run/secrets/.env.prod
     depends_on:
@@ -162,15 +167,34 @@ services:
     volumes:
       - ./logs:/app/logs
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8000/api/v1/healthcheck || exit 1"]
-      interval: 5s
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/public/healthcheck')\""]
+      interval: 30s
       timeout: 5s
-      retries: 10
+      retries: 3
     secrets:
       - .env.prod
-    # внешний | внутренний
+      - private_key.pem
+      - public_key.pem
     ports:
-      - '8100:8000'
+      - "127.0.0.1:8100:8000"
+    networks:
+      net_con:
+
+  nginx:
+    build:
+      context: .
+      dockerfile: Dockerfile_nginx
+    container_name: nginx_gateway
+    restart: unless-stopped
+    depends_on:
+      web_app:
+        condition: service_healthy
+    volumes:
+      - ./logs:/var/log/nginx
+      - ./scripts:/app/scripts:ro
+    ports:
+      - "80:80"
+      - "443:443"
     networks:
       net_con:
 
@@ -199,3 +223,7 @@ networks:
 secrets:
   .env.prod:
     file: .env.prod
+  private_key.pem:
+    file: ./secrets/keys/private_jwt.pem
+  public_key.pem:
+    file: ./secrets/keys/public_jwt.pem

@@ -1,0 +1,20 @@
+FROM alpine:3.18
+
+# Использовать HTTP репозитории если есть проблемы с SSL
+RUN echo "http://dl-cdn.alpinelinux.org/alpine/v3.18/main" > /etc/apk/repositories && \
+    echo "http://dl-cdn.alpinelinux.org/alpine/v3.18/community" >> /etc/apk/repositories && \
+    apk add --no-cache bash iptables grep curl
+
+WORKDIR /app
+
+# Копировать скрипты
+COPY autoban_iptables/manage_bans.sh /app/
+COPY autoban_iptables/auto_ban.sh /app/
+RUN chmod +x /app/*.sh
+
+HEALTHCHECK --interval=60s --timeout=5s --retries=3 \
+  CMD iptables -L KATK_BANLIST -n || exit 1
+
+
+ENTRYPOINT ["/bin/bash"]
+CMD ["-c", "/app/manage_bans.sh init && while true; do /app/auto_ban.sh; sleep 60; done"]

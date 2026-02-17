@@ -1,6 +1,7 @@
 from asyncpg import Connection, UniqueViolationError
 
-from core.utils.anything import TimetableVerStatuses, TimetableTypes, CardsStatesStatuses, extract_conflict_values
+from core.utils.anything import TimetableVerStatuses, TimetableTypes, CardsStatesStatuses, extract_conflict_values, \
+    accept_card_constraint
 from core.utils.logger import log_event
 
 
@@ -112,13 +113,23 @@ class N8NIUQueries:
 
     async def save_card(self, card_hist_id: int, sched_ver_id: int, user_id: int, lessons):
         query = '''
-        WITH switch_cur AS (
-            UPDATE cards_states_history SET is_current = false WHERE id = $1
+        WITH ver_check AS (
+            SELECT id, is_commited, status_id
+            FROM ttable_versions
+            WHERE id = $2
+        ),
+        switch_cur AS (
+            UPDATE cards_states_history SET is_current = false 
+            WHERE id = $1
+              AND EXISTS (
+                SELECT 1 FROM ver_check 
+                WHERE is_commited = false OR status_id != $4
+              )
             RETURNING group_id
         ),
         ins_hist AS (
             INSERT INTO cards_states_history (sched_ver_id, user_id, status_id, group_id, is_current)
-            SELECT $2, $3, $4, sc.group_id, true
+            SELECT $2, $3, $10, sc.group_id, true
             FROM switch_cur sc
             RETURNING id AS new_hist_id
         ),
@@ -139,7 +150,7 @@ class N8NIUQueries:
         try:
             res = await self.conn.fetchval(
                 query,
-                card_hist_id, sched_ver_id, user_id, CardsStatesStatuses.edited,  discipline_ids, positions, auds, teacher_ids, is_forces
+                card_hist_id, sched_ver_id, user_id, TimetableVerStatuses.accepted, discipline_ids, positions, auds, teacher_ids, is_forces, CardsStatesStatuses.edited
             )
         except UniqueViolationError as e:
             exc = e.as_dict()['detail']
@@ -169,6 +180,241 @@ class N8NIUQueries:
         '''
         return await self.conn.fetch(query, card_hist_id)
 
+
     async def accept_card(self, card_hist_id: int):
-        query = 'UPDATE cards_states_history SET status_id = $2 WHERE id = $1'
-        await self.conn.execute(query, card_hist_id, CardsStatesStatuses.accepted)
+        check_query = '''
+        SELECT EXISTS (
+            SELECT 1 
+            FROM cards_states_history csh1
+            JOIN cards_states_history csh2 ON csh2.id = $1
+            WHERE csh1.sched_ver_id = csh2.sched_ver_id
+              AND csh1.group_id = csh2.group_id
+              AND csh1.status_id = $2
+              AND csh1.id != $1
+        ) as has_accepted
+        '''
+        has_accepted = await self.conn.fetchval(check_query, card_hist_id, CardsStatesStatuses.accepted)
+        if has_accepted:
+            return 409, 'Для этой группы уже существует утвержденная карточка в данной версии расписания'
+        
+        query = '''
+        WITH ver_check AS (
+            SELECT tv.id, tv.is_commited, tv.status_id
+            FROM cards_states_history csh
+            JOIN ttable_versions tv ON tv.id = csh.sched_ver_id
+            WHERE csh.id = $1
+        ),
+        pairs_count AS (
+            SELECT COUNT(*) as cnt
+            FROM cards_states_details
+            WHERE card_hist_id = $1
+        ),
+        update_result AS (
+            UPDATE cards_states_history 
+            SET status_id = $2
+            WHERE id = $1
+              AND EXISTS (
+                SELECT 1 FROM ver_check 
+                WHERE is_commited = false OR status_id != $4
+              )
+              AND EXISTS (
+                SELECT 1 FROM pairs_count WHERE cnt >= $3
+              )
+            RETURNING id
+        )
+        SELECT ur.id as updated_id, vc.is_commited, vc.status_id, pc.cnt as pairs_count
+        FROM ver_check vc
+        CROSS JOIN pairs_count pc
+        LEFT JOIN update_result ur ON true
+        '''
+        
+        try:
+            res = await self.conn.fetchrow(query, card_hist_id, CardsStatesStatuses.accepted, accept_card_constraint, TimetableVerStatuses.accepted)
+        except UniqueViolationError:
+            return 409, 'Для этой группы уже существует утвержденная карточка в данной версии расписания'
+        
+        if res['updated_id'] is not None:
+            return 200, 'Карточка сменила статус на "Утверждено"!'
+        
+        if res['is_commited'] and res['status_id'] == TimetableVerStatuses.accepted:
+            return 403, 'Версия расписания уже утверждена, изменения запрещены'
+        
+        return 409, f'В расписании для группы должно быть хотя бы {accept_card_constraint} занятий на день'
+
+
+    async def bulk_add_cards(self, ttable_id: int, user_id: int, group_names: list[str], lessons: list):
+        """
+        Bulk-вставка карточек для групп.
+        Если lessons пустой - создаются пустые карточки (только для одной группы).
+        Если lessons не пустой(вставка из буфера обмена) - создаются карточки с дисциплинами для всех скопированных карточек-групп.
+        """
+
+        # Подготовка данных для lessons
+        if lessons:
+            discipline_ids = [lesson.discipline_id for lesson in lessons]
+            positions = [lesson.position for lesson in lessons]
+            auds = [lesson.aud for lesson in lessons]
+            teacher_ids = [lesson.teacher_id for lesson in lessons]
+            is_forces = [lesson.is_force for lesson in lessons]
+        else:
+            discipline_ids = []
+            positions = []
+            auds = []
+            teacher_ids = []
+            is_forces = []
+        
+        query = '''
+        WITH ver_check AS (
+            SELECT id, is_commited, status_id
+            FROM ttable_versions
+            WHERE id = $1
+        ),
+        group_ids AS (
+            SELECT id, name
+            FROM groups
+            WHERE name = ANY($2::text[])
+              AND is_active = true
+        ),
+        ins_hist AS (
+            INSERT INTO cards_states_history (sched_ver_id, user_id, status_id, group_id, is_current)
+            SELECT $1, $3, $4, g.id, true
+            FROM group_ids g
+            WHERE EXISTS (
+                SELECT 1 FROM ver_check 
+                WHERE is_commited = false OR status_id != $5
+            )
+            RETURNING id, group_id
+        ),
+        ins_details AS (
+            INSERT INTO cards_states_details (card_hist_id, discipline_id, "position", aud, teacher_id, sched_ver_id, is_force)
+            SELECT 
+                h.id,
+                lesson_data.discipline_id,
+                lesson_data.position,
+                lesson_data.aud,
+                lesson_data.teacher_id,
+                $1,
+                lesson_data.is_force
+            FROM ins_hist h
+            CROSS JOIN (
+                SELECT 
+                    UNNEST($6::int[]) as discipline_id,
+                    UNNEST($7::int[]) as position,
+                    UNNEST($8::text[]) as aud,
+                    UNNEST($9::int[]) as teacher_id,
+                    UNNEST($10::bool[]) as is_force
+            ) lesson_data
+            WHERE $11 > 0
+            ON CONFLICT (position, teacher_id, sched_ver_id) WHERE is_force = false DO NOTHING
+            RETURNING card_hist_id
+        )
+        SELECT 
+            COALESCE(array_agg(DISTINCT h.id), ARRAY[]::bigint[]) as card_ids,
+            (SELECT is_commited FROM ver_check) as is_commited,
+            (SELECT status_id FROM ver_check) as status_id,
+            COALESCE(array_agg(DISTINCT g.name), ARRAY[]::text[]) as found_groups
+        FROM ins_hist h
+        FULL OUTER JOIN group_ids g ON true
+        '''
+        
+        res = await self.conn.fetchrow(
+            query,
+            ttable_id, group_names, user_id, CardsStatesStatuses.draft, TimetableVerStatuses.accepted,
+            discipline_ids, positions, auds, teacher_ids, is_forces, len(discipline_ids)
+        )
+        
+        "Разбираемся, что получилось в запросе"
+        if res['is_commited'] and res['status_id'] == TimetableVerStatuses.accepted:
+            return None, 'Версия расписания уже утверждена, изменения запрещены'
+        
+        card_ids = res.get('card_ids', [])
+        found_groups = set(res.get('found_groups', []))
+        
+        "Все ли группы найдены"
+        not_found = set(group_names) - found_groups
+        if not_found:
+            return card_ids, f'Группы не найдены или неактивны: {", ".join(sorted(not_found))}'
+
+        "Отдаём id карточек, если всё норм"
+        return card_ids, None
+
+
+    async def switch_as_edit(self, card_hist_id: int, ttable_id: int):
+        query = '''
+        WITH ver_check AS (
+            SELECT id, is_commited, status_id FROM ttable_versions WHERE id = $4
+        ),
+        update_result AS (
+            UPDATE cards_states_history 
+            SET status_id = $2
+            WHERE id = $1
+              AND EXISTS (
+                SELECT 1 FROM ver_check 
+                WHERE is_commited = false OR status_id != $3
+              )
+            RETURNING id
+        )
+        SELECT 
+            ur.id IS NOT NULL as updated,
+            vc.is_commited,
+            vc.status_id
+        FROM ver_check vc
+        LEFT JOIN update_result ur ON true
+        '''
+        res = await self.conn.fetchrow(query, card_hist_id, CardsStatesStatuses.edited, TimetableVerStatuses.accepted, ttable_id)
+        
+        if res['updated']:
+            return True
+        
+        # Проверяем, почему не обновилось
+        if res['is_commited'] and res['status_id'] == TimetableVerStatuses.accepted:
+            return False  # Версия заблокирована
+        
+        return True  # Другая причина (например, карточка не найдена)
+
+
+    async def bulk_delete_cards(self, card_ids: list[int], ttable_id: int):
+        query = '''
+        WITH ver_check AS (
+            SELECT id, is_commited, status_id
+            FROM ttable_versions
+            WHERE id = $2
+        ),
+        delete_result AS (
+            DELETE FROM cards_states_details
+            WHERE card_hist_id = ANY($1::int[])
+              AND EXISTS (
+                SELECT 1 FROM ver_check 
+                WHERE is_commited = false OR status_id != $3
+              )
+            RETURNING card_hist_id
+        )
+        SELECT 
+            COUNT(dr.card_hist_id) as deleted_count,
+            vc.is_commited,
+            vc.status_id
+        FROM ver_check vc
+        LEFT JOIN delete_result dr ON true
+        GROUP BY vc.is_commited, vc.status_id
+        '''
+        res = await self.conn.fetchrow(query, card_ids, ttable_id, TimetableVerStatuses.accepted)
+        
+        if res['deleted_count'] > 0:
+            return res['deleted_count']
+        
+        # Проверяем, почему не удалилось
+        if res['is_commited'] and res['status_id'] == TimetableVerStatuses.accepted:
+            return False  # Версия заблокирована
+        
+        return 0  # Карточки не найдены или уже удалены
+
+
+    async def group_box_w_disciplines(self, group_id: int, limit: int, offset: int):
+        query = '''
+        SELECT gs.discipline_id, d.title FROM groups_disciplines gs
+        JOIN disciplines d ON gs.discipline_id = d.id
+        WHERE gs.group_id = $1
+        LIMIT $2 OFFSET $3
+        '''
+        res = await self.conn.fetch(query, group_id, limit, offset)
+        return res

@@ -13,10 +13,9 @@ PagenDep = Annotated[PagenSchema, Depends(PagenSchema)]
 class GroupPagenSchema(PagenSchema):
     limit: int = Field(default=30, ge=1)
 
-GroupPagenDep = Annotated[GroupPagenSchema, Depends(GroupPagenSchema)]
 
 class TeachersPagenSchema(PagenSchema):
     limit: int = Field(default=40, ge=1)
 
-TeachPagenDep = Annotated[TeachersPagenSchema, Depends(TeachersPagenSchema)]
-DisciplinesPagenSchema = Annotated[TeachersPagenSchema, Depends(TeachersPagenSchema)]
+class DisciplinesPagenSchema(GroupPagenSchema):
+    ...

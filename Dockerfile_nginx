@@ -1,0 +1,11 @@
+FROM openresty/openresty:1.21.4.2-alpine
+
+RUN rm -f /usr/local/openresty/nginx/conf/conf.d/default.conf
+
+COPY nginx.conf /usr/local/openresty/nginx/conf/nginx.conf
+COPY katkru_server.conf /usr/local/openresty/nginx/conf/conf.d/
+
+# Создать директорию для логов и файлы
+RUN mkdir -p /var/log/nginx && \
+    touch /var/log/nginx/access.log /var/log/nginx/error.log && \
+    chmod 666 /var/log/nginx/*.log

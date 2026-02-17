@@ -1,4 +1,5 @@
 from datetime import datetime, date
+from typing import Literal
 
 from pydantic import Field, BaseModel
 
@@ -13,3 +14,11 @@ class PreAcceptTimetableSchema(BaseModel):
 class CommitTtableVersionSchema(BaseModel):
     pending_ver_id: int
     target_ver_id: int
+
+
+class TtableVersionsGetSchema(BaseModel):
+    type: Literal["standard", "replacements"] | None = None
+    status_id: int | None = None
+    schedule_date: date | None = None
+    is_commited: bool | None = None
+    date_sort: Literal["asc", "desc"] = "desc"

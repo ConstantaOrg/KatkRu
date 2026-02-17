@@ -1,17 +1,22 @@
 import datetime
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
-class BaseTtableSchema(BaseModel):
-    building_id: int
-
-class CreateTtableSchema(BaseTtableSchema):
+class CreateTtableSchema(BaseModel):
     date: datetime.date | None
     type: Literal['standard', 'replacements']
+    @field_validator('date', mode='after')
+    @classmethod
+    def actual_date(cls, v):
+        """"""
+        "Актуальна ли назначенная дата для расписания, Если это не standard type"
+        if isinstance(v, datetime.date) and datetime.datetime.now().date() <= v:
+            return v
+        raise ValueError('Введите актуальную дату для расписания')
 
-class StdTtableSchema(BaseTtableSchema):
+class StdTtableSchema(BaseModel):
     ttable_id: int
 
 class StdTtableLoadSchema(StdTtableSchema):

@@ -9,7 +9,7 @@ class SpecIndex:
     settings = {
         "number_of_shards": 1,
         "number_of_replicas": 0,
-        "refresh_interval": "5s",
+        "refresh_interval": "-1",
         "analysis": {
             "analyzer": {
                 # Автокомплит для кодов
@@ -121,13 +121,18 @@ class GroupIndex:
     settings = {
         "number_of_shards": 1,
         "number_of_replicas": 0,
-        "refresh_interval": "5s",
+        "refresh_interval": "-1",
         "analysis": {
             "analyzer": {
                 "group_autocomplete": {
                     "type": "custom",
                     "tokenizer": "edge_ngram_group",
                     "filter": ["uppercase"]
+                },
+                "fulltext_search": {
+                    "type": "custom",
+                    "tokenizer": "standard",
+                    "filter": ["uppercase", "russian_stop"]
                 }
             },
             "tokenizer": {
@@ -136,6 +141,13 @@ class GroupIndex:
                     "min_gram": 2,
                     "max_gram": 8,
                     "token_chars": ["letter", "digit", "punctuation"]
+                }
+            },
+            'filter': {
+                "russian_stop": {
+                    "type": "stop",
+                    "ignore_case": True,
+                    "stopwords": "_russian_"
                 }
             }
         }
@@ -149,7 +161,16 @@ class GroupIndex:
             },
             "group_name": {
                 "type": "text",
-                "analyzer": "group_autocomplete"
+                "analyzer": "group_autocomplete",
+                "fields": {
+                    "deep": {
+                        "type": "text",
+                        "analyzer": "fulltext_search"
+                    }
+                }
+            },
+            "is_active": {
+                "type": "boolean"
             }
         }
     }
@@ -160,6 +181,130 @@ class GroupIndex:
             "match": {
                 "group_name": {
                     "query": search_phrase
+                }
+            }
+        }
+
+    @staticmethod
+    def search_ptn_deep(search_phrase: str):
+        return { # == 'deep'
+            "match": {
+                "group_name.deep": {
+                    "query": search_phrase,
+                    'fuzziness': 'auto',
+                    'prefix_length': 1
+                }
+            }
+        }
+
+
+class DisciplinesIndex:
+    aliases = {
+        env.search_index_discip: {}
+    }
+
+    settings = {
+        "number_of_shards": 1,
+        "number_of_replicas": 0,
+        "refresh_interval": "-1",
+        "analysis": {
+            "analyzer": {
+                "fulltext_search": {
+                    "type": "custom",
+                    "tokenizer": "standard",
+                    "filter": ["lowercase", "russian_stop"]
+                }
+            },
+            "filter": {
+                "russian_stop": {
+                    "type": "stop",
+                    "ignore_case": True,
+                    "stopwords": "_russian_"
+                }
+            }
+        }
+    }
+    
+    mappings = {
+        "properties": {
+            "id": {
+                "type": "long",
+                "index": False
+            },
+            "title": {
+                "type": "text",
+                "analyzer": "fulltext_search"
+            },
+            "is_active": {
+                "type": "boolean"
+            }
+        }
+    }
+
+    @staticmethod
+    def search_ptn(search_phrase: str):
+        return {
+            "match": {
+                "title": {
+                    "query": search_phrase,
+                    "fuzziness": "auto",
+                    "prefix_length": 1
+                }
+            }
+        }
+
+
+class TeachersIndex:
+    aliases = {
+        env.search_index_teachers: {}
+    }
+
+    settings = {
+        "number_of_shards": 1,
+        "number_of_replicas": 0,
+        "refresh_interval": "-1",
+        "analysis": {
+            "analyzer": {
+                "fulltext_search": {
+                    "type": "custom",
+                    "tokenizer": "standard",
+                    "filter": ["lowercase", "russian_stop"]
+                }
+            },
+            "filter": {
+                "russian_stop": {
+                    "type": "stop",
+                    "ignore_case": True,
+                    "stopwords": "_russian_"
+                }
+            }
+        }
+    }
+    
+    mappings = {
+        "properties": {
+            "id": {
+                "type": "long",
+                "index": False
+            },
+            "fio": {
+                "type": "text",
+                "analyzer": "fulltext_search"
+            },
+            "is_active": {
+                "type": "boolean"
+            }
+        }
+    }
+
+    @staticmethod
+    def search_ptn(search_phrase: str):
+        return {
+            "match": {
+                "fio": {
+                    "query": search_phrase,
+                    "fuzziness": "auto",
+                    "prefix_length": 1
                 }
             }
         }

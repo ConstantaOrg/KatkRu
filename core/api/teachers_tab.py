@@ -1,12 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from starlette.requests import Request
 
 from core.data.postgre import PgSqlDep
 from core.response_schemas.teachers_tab import (
-    TeachersGetResponse, TeachersUpdateResponse, TeachersAddResponse
+    TeachersGetResponse, TeachersUpdateResponse
 )
 from core.schemas.cookie_settings_schema import JWTCookieDep
-from core.schemas.n8n_ui.teachers_schema import TeachersAddSchema, TeachersUpdateSchema
+from core.schemas.n8n_ui.teachers_schema import TeachersAddSchema, TeachersUpdateSchema, TeacherFilterSchema
 from core.schemas.schemas2depends import TeachersPagenSchema
 from core.utils.anything import Roles
 from core.utils.lite_dependencies import role_require
@@ -20,8 +20,8 @@ router = APIRouter(prefix='/private/teachers', tags=['Teachers👨‍🏫'])
 
 
 @router.post('/get', dependencies=[Depends(role_require(Roles.methodist, Roles.read_all))], response_model=TeachersGetResponse)
-async def get_teachers(pagen: TeachersPagenSchema, db: PgSqlDep, request: Request, _: JWTCookieDep):
-    teachers = await db.teachers.get_all(pagen.limit, pagen.offset)
+async def get_teachers(body: TeacherFilterSchema, pagen: TeachersPagenSchema, db: PgSqlDep, request: Request, _: JWTCookieDep):
+    teachers = await db.teachers.get_all(body.is_active, pagen.limit, pagen.offset)
     log_event(f"Отобразили Учителей | user_id: \033[31m{request.state.user_id}\033[0m", request=request)
     return {'teachers': [dict(teacher) for teacher in teachers]}
 

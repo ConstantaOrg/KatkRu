@@ -5,9 +5,17 @@ class GroupsQueries:
     def __init__(self, conn: Connection):
         self.conn = conn
 
-    async def get_all(self, building_id: int, limit: int, offset: int):
-        query = 'SELECT id, name, is_active FROM groups WHERE building_id = $1 LIMIT $2 OFFSET $3'
-        res = await self.conn.fetch(query, building_id, limit, offset)
+    async def get_all(self, building_id: int, is_active_flag: bool | None, limit: int, offset: int):
+        is_active_filter = ''
+        filter_args = []
+
+        "Фильтры"
+        if is_active_flag is not None:
+            is_active_filter = 'AND is_active = $4'
+            filter_args.append(is_active_flag)
+
+        query = f'SELECT id, name, is_active FROM groups WHERE building_id = $1 {is_active_filter} LIMIT $2 OFFSET $3'
+        res = await self.conn.fetch(query, building_id, limit, offset, *filter_args)
         return res
 
     async def add(self, group_name: str, building_id: int):
@@ -31,6 +39,6 @@ class GroupsQueries:
         return len(active_rows), len(inactive_rows)
 
     async def groups2elastic(self):
-        query = 'SELECT id, name FROM groups'
+        query = 'SELECT id, name, is_active FROM groups'
         res = await self.conn.fetch(query)
         return res

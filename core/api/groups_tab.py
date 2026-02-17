@@ -1,14 +1,11 @@
-from typing import Annotated
-
-from fastapi import APIRouter, Depends, HTTPException
-from fastapi.params import Query
+from fastapi import APIRouter, Depends
 from starlette.requests import Request
 
 from core.data.postgre import PgSqlDep
 from core.schemas.cookie_settings_schema import JWTCookieDep
-from core.schemas.n8n_ui.groups_schema import GroupAddSchema, GroupUpdateSchema
-from core.schemas.schemas2depends import GroupPagenDep
-from core.response_schemas.groups_tab import GroupsGetResponse, GroupsUpdateResponse, GroupsAddResponse
+from core.schemas.n8n_ui.groups_schema import GroupAddSchema, GroupUpdateSchema, GroupFilterSchema
+from core.schemas.schemas2depends import GroupPagenSchema
+from core.response_schemas.groups_tab import GroupsGetResponse, GroupsUpdateResponse
 from core.utils.anything import Roles
 from core.utils.lite_dependencies import role_require
 from core.utils.logger import log_event
@@ -21,8 +18,8 @@ router = APIRouter(prefix='/private/groups', tags=['Groups👥👥👥'])
 
 
 @router.post('/get', response_model=GroupsGetResponse, dependencies=[Depends(role_require(Roles.methodist, Roles.read_all))])
-async def get_groups(building_id: Annotated[int, Query(alias='bid')], pagen: GroupPagenDep, db: PgSqlDep, request: Request, _: JWTCookieDep):
-    groups = await db.groups.get_all(building_id, pagen.limit, pagen.offset)
+async def get_groups(body: GroupFilterSchema, pagen: GroupPagenSchema, db: PgSqlDep, request: Request, _: JWTCookieDep):
+    groups = await db.groups.get_all(request.state.building_id, body.is_active, pagen.limit, pagen.offset)
     log_event(f"Отобразили группы | user_id: \033[31m{request.state.user_id}\033[0m", request=request)
     return {'groups': [dict(group) for group in groups]}
 
@@ -38,7 +35,7 @@ async def update_groups(body: GroupUpdateSchema, db: PgSqlDep, request: Request,
     409: {"model": GroupsAddConflictResponse, "description": "Group already exists"}
 }, dependencies=[Depends(role_require(Roles.methodist))])
 async def add_group(body: GroupAddSchema, db: PgSqlDep, request: Request, _: JWTCookieDep):
-    group_id = await db.groups.add(body.group_name, body.building_id)
+    group_id = await db.groups.add(body.group_name, request.state.building_id)
     if not group_id:
         log_event(f'Не удалось создать группу | user_id: \033[31m{request.state.user_id}\033[0m | group_name: \033[34m{body.group_name}\033[0m',
             request=request, level='WARNING')
