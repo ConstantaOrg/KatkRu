@@ -30,7 +30,7 @@ groups:
               metrics:
                 - type: count
                   id: "1"
-              query: "environment:docker AND (level:ERROR OR level:CRITICAL)"
+              query: "environment:prod AND (level:ERROR OR level:CRITICAL)"
               refId: A
               timeField: "@timestamp"
           - refId: B
@@ -129,7 +129,7 @@ groups:
               metrics:
                 - type: count
                   id: "1"
-              query: "environment:docker AND http_status:[500 TO 599]"
+              query: "environment:prod AND http_status:[500 TO 599]"
               refId: A
               timeField: "@timestamp"
           - refId: B
@@ -228,7 +228,7 @@ groups:
               metrics:
                 - type: count
                   id: "1"
-              query: "environment:docker AND response_time:[7 TO *]"
+              query: "environment:prod AND response_time:[7 TO *]"
               refId: A
               timeField: "@timestamp"
           - refId: B

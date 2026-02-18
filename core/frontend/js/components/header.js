@@ -2,7 +2,7 @@
 import { config } from '../config.js';
 
 export function renderHeader() {
-    const logoUrl = 'https://www.figma.com/api/mcp/asset/593ba6dd-7094-487f-a21f-7a6740a90eb3';
+    const logoUrl = '/images/logo.png';
     
     return `
         <header class="header">

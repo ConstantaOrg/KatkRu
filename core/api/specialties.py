@@ -1,4 +1,7 @@
+from typing import Annotated
+
 from fastapi import APIRouter
+from fastapi.params import Query
 
 from core.data.postgre import PgSqlDep
 from core.schemas.specs_schema import SpecsPaginSchema
@@ -14,6 +17,6 @@ async def specialties_all(pagen: SpecsPaginSchema, db: PgSqlDep):
 
 
 @router.get('/{spec_id}', response_model=SpecialtyGetResponse)
-async def specialties_get(spec_id: int, db: PgSqlDep):
-    ext_spec = await db.specialties.get_spec_by_id(spec_id)
+async def specialties_get(spec_id: int, lite: Annotated[bool, Query()], db: PgSqlDep):
+    ext_spec = await db.specialties.get_spec_by_id(spec_id, lite)
     return {'speciality': dict(ext_spec)}

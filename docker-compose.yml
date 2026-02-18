@@ -112,10 +112,8 @@ services:
     image: grafana/grafana:11.0.0
     container_name: grafana
     depends_on:
-      es01:
+      web_app:
         condition: service_healthy
-      filebeat:
-        condition: service_started
     environment:
       - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN}
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSW}
@@ -198,6 +196,7 @@ services:
       - "443:443"
     networks:
       net_con:
+        ipv4_address: 172.18.0.9
 
 
 volumes:
@@ -220,6 +219,9 @@ networks:
   net_con:
     driver: bridge
     name: katk_net
+    ipam:
+      config:
+        - subnet: 172.18.0.0/16
 
 secrets:
   .env.prod:

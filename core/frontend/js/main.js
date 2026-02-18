@@ -3,6 +3,21 @@ import { router } from './router.js';
 import { initHeader } from './components/header.js';
 import { initFooter } from './components/footer.js';
 import { renderHomePage } from './pages/home.js';
+import { renderSpecialtiesPage } from './pages/specialties.js';
+import { renderSpecialtyPage } from './pages/specialty.js';
+
+// Global helper function to save specialty data to localStorage before navigation
+window.saveAndNavigate = function(specId, specCode, title, imgPath) {
+    console.log('saveAndNavigate called:', { specId, specCode, title, imgPath });
+    const specialtyData = {
+        spec_code: specCode,
+        title: title,
+        img_path: imgPath
+    };
+    localStorage.setItem(`specialty_${specId}`, JSON.stringify(specialtyData));
+    console.log('Saved to localStorage:', `specialty_${specId}`, specialtyData);
+    window.location.href = `/specialty/${specId}`;
+};
 
 // Initialize app
 function init() {
@@ -12,24 +27,18 @@ function init() {
     
     // Register routes
     router.register('/', renderHomePage);
+    router.register('/specialties', renderSpecialtiesPage);
     
-    // Placeholder routes (will be implemented later)
-    router.register('/specialties', () => {
-        document.getElementById('content').innerHTML = `
-            <div class="container" style="padding: 4rem 0;">
-                <h1>Специальности</h1>
-                <p>Страница в разработке...</p>
-            </div>
-        `;
-    });
-    
-    router.register('/specialty', () => {
-        document.getElementById('content').innerHTML = `
-            <div class="container" style="padding: 4rem 0;">
-                <h1>Детали специальности</h1>
-                <p>Страница в разработке...</p>
-            </div>
-        `;
+    router.register('/specialty', (params) => {
+        console.log('Specialty route called with params:', params);
+        const specId = params[0];
+        if (specId) {
+            console.log('Rendering specialty page for ID:', specId);
+            renderSpecialtyPage(specId);
+        } else {
+            console.log('No specId provided, redirecting to specialties');
+            router.navigate('/specialties');
+        }
     });
     
     router.register('/schedule', () => {

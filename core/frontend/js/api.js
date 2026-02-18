@@ -30,7 +30,7 @@ class ApiClient {
     }
     
     // Specialties
-    async getSpecialties(search = '', limit = 6, offset = 0) {
+    async getSpecialties(limit = 6, offset = 0) {
         const response = await this.request('/v1/public/specialties/all', {
             method: 'POST',
             body: JSON.stringify({
@@ -39,22 +39,43 @@ class ApiClient {
             })
         });
         
-        const data = response.specialties || [];
-        
-        // Filter by search if provided
-        if (search) {
-            const searchLower = search.toLowerCase();
-            return data.filter(spec => 
-                spec.title.toLowerCase().includes(searchLower) ||
-                spec.spec_code.includes(search)
-            );
-        }
-        
-        return data;
+        return response.specialties || [];
     }
     
-    async getSpecialty(code) {
-        return this.request(`/specialties/${code}`);
+    // Autocomplete for specialties
+    async autocompleteSpecialties(searchTerm) {
+        const response = await this.request('/v1/public/elastic/autocomplete_spec', {
+            method: 'POST',
+            body: JSON.stringify({
+                search_term: searchTerm
+            })
+        });
+        
+        return response.search_res || [];
+    }
+    
+    // Full-text search for specialties
+    async searchSpecialties(searchTerm, limit = 6, offset = 0) {
+        const response = await this.request('/v1/public/elastic/ext_spec', {
+            method: 'POST',
+            body: JSON.stringify({
+                body: {
+                    search_term: searchTerm
+                },
+                pagen: {
+                    offset: offset,
+                    limit: limit
+                }
+            })
+        });
+        
+        return response.search_res || [];
+    }
+    
+    // Get specialty details by ID
+    async getSpecialtyDetails(specId, lite = false) {
+        const response = await this.request(`/v1/public/specialties/${specId}?lite=${lite}`);
+        return response.speciality || null;
     }
     
     // Schedule

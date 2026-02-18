@@ -43,53 +43,9 @@ class Roles:
     read_all: str = 'read_all'
 
 @dataclass
-class ModuleNames:
-    """Константы для названий модулей в генераторе документации."""
-    specialties: str = 'specialties'
-    groups: str = 'groups'
-    teachers: str = 'teachers'
-    disciplines: str = 'disciplines'
-    timetable: str = 'timetable'
-    users: str = 'users'
-    n8n_ui: str = 'n8n_ui'
-    elastic_search: str = 'elastic_search'
-    ttable_versions: str = 'ttable_versions'
-
-@dataclass
-class HttpMethods:
-    """Константы для HTTP методов."""
-    GET: str = 'GET'
-    POST: str = 'POST'
-    PUT: str = 'PUT'
-    DELETE: str = 'DELETE'
-    PATCH: str = 'PATCH'
-
-@dataclass
-class ParameterLocations:
-    """Константы для расположения параметров."""
-    query: str = 'query'
-    path: str = 'path'
-    header: str = 'header'
-    body: str = 'body'
-
-@dataclass
-class FieldTypes:
-    """Константы для типов полей."""
-    string: str = 'string'
-    integer: str = 'integer'
-    number: str = 'number'
-    boolean: str = 'boolean'
-    array: str = 'array'
-    object: str = 'object'
-
-@dataclass
-class ModulePaths:
-    """Пути к модулям для анализа зависимостей."""
-    elastic_search: str = "core.api.elastic_search"
-    n8n_ui: str = "core.api.n8n_ui"
-    ttable_versions: str = "core.api.ttable_versions_tab"
-    timetable: str = "core.api.timetable.timetable_api"
-    users: str = "core.api.users.users_api"
+class SearchModes:
+    auto: str = 'auto'
+    deep: str = 'deep'
 
 def hide_log_param(param, start=3, end=8):
     return param[:start] + '*' * len(param[start:-end-1]) + param[-end:]

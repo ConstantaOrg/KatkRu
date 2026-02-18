@@ -14,8 +14,8 @@ from core.response_schemas.elastic_search import (
 from core.schemas.cookie_settings_schema import JWTCookieDep
 from core.schemas.elastic_schema import MethodSearchSchema
 from core.schemas.schemas2depends import PagenSchema
-from core.schemas.specs_schema import AutocompleteSearchSchema, DeepSearchSchema, BaseSpecSearchSchema
-from core.utils.anything import Roles
+from core.schemas.specs_schema import BaseSpecSearchSchema
+from core.utils.anything import Roles, SearchModes
 from core.utils.lite_dependencies import role_require
 from core.utils.logger import log_event
 
@@ -85,15 +85,15 @@ async def init_elasticsearch_index(index_names: list[str], db: Pool, aioes: Asyn
 
 
 @router.post("/public/elastic/autocomplete_spec", response_model=AutocompleteSearchResponse)
-async def fast_search(body: AutocompleteSearchSchema, request: Request, aioes: ElasticDep):
+async def fast_search(body: BaseSpecSearchSchema, request: Request, aioes: ElasticDep):
     """
     код специальности и название склеить на фронте(возможно)
     """
-    search_schema = SpecIndex.search_ptn(body.search_term, search_mode=body.search_mode)
+    search_schema = SpecIndex.search_ptn(body.search_term, search_mode=SearchModes.auto)
     raw_res = await aioes.search(index=env.search_index_spec, query=search_schema, size=5, filter_path='hits.hits')
     search_res = raw_res['hits']['hits']
 
-    log_event(f'Поисковая выдача: search_term: "{body.search_term}"; length hits: {len(search_res)}; \033[33m{body.search_mode}\033[0m', request=request, level='WARNING')
+    log_event(f'Поисковая выдача: search_term: "{body.search_term}"; length hits: {len(search_res)}; \033[33m{SearchModes.auto}\033[0m', request=request, level='WARNING')
     return {"search_res": tuple(
         {'id': rec['_id'], 'spec_code': rec['_source']['code_autocomplete'], 'title': rec['_source']['title']}
         for rec in search_res
@@ -101,11 +101,11 @@ async def fast_search(body: AutocompleteSearchSchema, request: Request, aioes: E
 
 
 @router.post("/public/elastic/ext_spec", response_model=DeepSearchResponse)
-async def deep_search(body: DeepSearchSchema, pagen: PagenSchema, aioes: ElasticDep, request: Request):
+async def deep_search(body: BaseSpecSearchSchema, pagen: PagenSchema, aioes: ElasticDep, request: Request):
     """
     код специальности и название склеить на фронте(возможно)
     """
-    search_schema = SpecIndex.search_ptn(body.search_term, search_mode=body.search_mode)
+    search_schema = SpecIndex.search_ptn(body.search_term, search_mode=SearchModes.deep)
     raw_res = await aioes.search(
         index=env.search_index_spec,
         query=search_schema,
@@ -115,9 +115,9 @@ async def deep_search(body: DeepSearchSchema, pagen: PagenSchema, aioes: Elastic
     )
     search_res = raw_res['hits']['hits']
 
-    log_event(f'Поисковая выдача: search_term: "{body.search_term}"; length hits: {len(search_res)}; \033[33m{body.search_mode}\033[0m', request=request,level='WARNING')
+    log_event(f'Поисковая выдача: search_term: "{body.search_term}"; length hits: {len(search_res)}; \033[33m{SearchModes.deep}\033[0m', request=request,level='WARNING')
     return {"search_res": tuple(
-        {'id': rec['_id'], 'spec_code': rec['_source']['code_autocomplete'], 'title': rec['_source']['title']}
+        {'id': rec['_id'], 'spec_code': rec['_source']['code_autocomplete'], 'title': rec['_source']['title'], 'img_path': rec['_source']['img_path']}
         for rec in search_res
     )}
 

@@ -1,5 +1,6 @@
 // Footer Component
 import { config } from '../config.js';
+import { getIcon } from './icons.js';
 
 export function renderFooter() {
     return `
@@ -10,21 +11,21 @@ export function renderFooter() {
                         <h3>Контакты</h3>
                         <div class="footer-contacts">
                             <div class="footer-item">
-                                <div class="footer-item-icon">📞</div>
+                                <div class="footer-item-icon">${getIcon('phone')}</div>
                                 <div class="footer-item-text">
                                     <p>${config.CONTACT.phone}</p>
                                     <p>Приемная комиссия</p>
                                 </div>
                             </div>
                             <div class="footer-item">
-                                <div class="footer-item-icon">✉️</div>
+                                <div class="footer-item-icon">${getIcon('email')}</div>
                                 <div class="footer-item-text">
                                     <p>${config.CONTACT.email}</p>
                                     <p>Приемная комиссия</p>
                                 </div>
                             </div>
                             <div class="footer-item">
-                                <div class="footer-item-icon">📍</div>
+                                <div class="footer-item-icon">${getIcon('location')}</div>
                                 <div class="footer-item-text">
                                     <p>${config.CONTACT.address}</p>
                                     <p>главный корпус</p>
