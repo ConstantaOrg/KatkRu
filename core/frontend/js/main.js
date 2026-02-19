@@ -5,6 +5,8 @@ import { initFooter } from './components/footer.js';
 import { renderHomePage } from './pages/home.js';
 import { renderSpecialtiesPage } from './pages/specialties.js';
 import { renderSpecialtyPage } from './pages/specialty.js';
+import { renderStudentsPage } from './pages/students.js';
+import { renderApplicantsPage } from './pages/applicants.js';
 
 // Global helper function to save specialty data to localStorage before navigation
 window.saveAndNavigate = function(specId, specCode, title, imgPath) {
@@ -28,6 +30,7 @@ function init() {
     // Register routes
     router.register('/', renderHomePage);
     router.register('/specialties', renderSpecialtiesPage);
+    router.register('/students', renderStudentsPage);
     
     router.register('/specialty', (params) => {
         console.log('Specialty route called with params:', params);
@@ -41,19 +44,12 @@ function init() {
         }
     });
     
-    router.register('/schedule', () => {
-        document.getElementById('content').innerHTML = `
-            <div class="container" style="padding: 4rem 0;">
-                <h1>Расписание</h1>
-                <p>Страница в разработке...</p>
-            </div>
-        `;
-    });
+    router.register('/applicants', renderApplicantsPage);
     
-    router.register('/applicants', () => {
+    router.register('/methodists', () => {
         document.getElementById('content').innerHTML = `
             <div class="container" style="padding: 4rem 0;">
-                <h1>Абитуриентам</h1>
+                <h1>Методистам</h1>
                 <p>Страница в разработке...</p>
             </div>
         `;

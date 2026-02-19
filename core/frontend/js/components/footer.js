@@ -51,12 +51,12 @@ export function renderFooter() {
                         <div class="footer-about">
                             <p>Официальный сайт Казанского авиационно-технический колледжа имени П.В.Дементьева</p>
                             <p>© 2026 Все права защищены</p>
-                            <p>Версия 1.5.0</p>
+                            <p>Версия 1.0.0</p>
                         </div>
                     </div>
                 </div>
                 <div class="footer-bottom">
-                    <p>Создано командой разработчиков ___ | Для связи: dev.constanta@gmail.com</p>
+                    <p>Для связи с командой разработчиков: dev.constanta@gmail.com</p>
                 </div>
             </div>
         </footer>

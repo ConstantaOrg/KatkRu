@@ -78,16 +78,29 @@ class ApiClient {
         return response.speciality || null;
     }
     
-    // Schedule
-    async getSchedule(groupId, date) {
-        const params = new URLSearchParams();
-        if (groupId) params.append('group', groupId);
-        if (date) params.append('date', date);
-        return this.request(`/schedule?${params}`);
+    // Schedule - get timetable for a group on a specific date
+    async getSchedule(group, date) {
+        const response = await this.request('/v1/public/ttable/get', {
+            method: 'POST',
+            body: JSON.stringify({
+                group: group.toUpperCase(), // Convert to uppercase
+                date: date // Format: YYYY-MM-DD
+            })
+        });
+        
+        return response.schedule || [];
     }
     
-    async getGroups() {
-        return this.request('/groups');
+    // Search groups - autocomplete for group names
+    async searchGroups(searchTerm) {
+        const response = await this.request('/v1/public/elastic/search_group', {
+            method: 'POST',
+            body: JSON.stringify({
+                search_term: searchTerm
+            })
+        });
+        
+        return response.search_res || [];
     }
     
     // News (if exists)

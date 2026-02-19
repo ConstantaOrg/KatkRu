@@ -122,7 +122,7 @@
         "showThresholdMarkers": true,
         "sizing": "auto"
       },
-      "pluginVersion": "10.2.0",
+      "pluginVersion": "11.0.0",
       "targets": [
         {
           "datasource": "Elasticsearch-Logs",
@@ -205,7 +205,7 @@
         "showThresholdMarkers": true,
         "sizing": "auto"
       },
-      "pluginVersion": "10.2.0",
+      "pluginVersion": "11.0.0",
       "targets": [
         {
           "datasource": "Elasticsearch-Logs",
@@ -278,7 +278,7 @@
         "textMode": "value_and_name",
         "wideLayout": true
       },
-      "pluginVersion": "10.2.0",
+      "pluginVersion": "11.0.0",
       "targets": [
         {
           "alias": "",
@@ -351,7 +351,7 @@
         "textMode": "value_and_name",
         "wideLayout": true
       },
-      "pluginVersion": "10.2.0",
+      "pluginVersion": "11.0.0",
       "targets": [
         {
           "alias": "",
@@ -424,7 +424,7 @@
         "textMode": "value_and_name",
         "wideLayout": true
       },
-      "pluginVersion": "10.2.0",
+      "pluginVersion": "11.0.0",
       "targets": [
         {
           "alias": "",
@@ -497,7 +497,7 @@
         "textMode": "value_and_name",
         "wideLayout": true
       },
-      "pluginVersion": "10.2.0",
+      "pluginVersion": "11.0.0",
       "targets": [
         {
           "alias": "",
@@ -629,7 +629,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "10.2.0",
+      "pluginVersion": "11.0.0",
       "targets": [
         {
           "alias": "CPU",
@@ -762,7 +762,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "10.2.0",
+      "pluginVersion": "11.0.0",
       "targets": [
         {
           "alias": "RAM",
@@ -930,7 +930,7 @@
           "sort": "desc"
         }
       },
-      "pluginVersion": "10.2.0",
+      "pluginVersion": "11.0.0",
       "targets": [
         {
           "alias": "CPU %",

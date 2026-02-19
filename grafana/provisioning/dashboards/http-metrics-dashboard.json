@@ -120,7 +120,7 @@
         "textMode": "value_and_name",
         "wideLayout": true
       },
-      "pluginVersion": "10.2.0",
+      "pluginVersion": "11.0.0",
       "targets": [
         {
           "alias": "",
@@ -208,7 +208,7 @@
         "textMode": "value_and_name",
         "wideLayout": true
       },
-      "pluginVersion": "10.2.0",
+      "pluginVersion": "11.0.0",
       "targets": [
         {
           "alias": "",
@@ -281,7 +281,7 @@
         "textMode": "value_and_name",
         "wideLayout": true
       },
-      "pluginVersion": "10.2.0",
+      "pluginVersion": "11.0.0",
       "targets": [
         {
           "alias": "",
@@ -309,248 +309,6 @@
       ],
       "title": "🌐 Всего HTTP запросов",
       "type": "stat"
-    },
-    {
-      "datasource": "Elasticsearch-Logs",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "drawStyle": "line",
-            "fillOpacity": 20,
-            "gradientMode": "opacity",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": false,
-            "lineInterpolation": "smooth",
-            "lineWidth": 2,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "never",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          },
-          "unit": "short"
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "2xx"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "green",
-                  "mode": "fixed"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "3xx"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "blue",
-                  "mode": "fixed"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "4xx"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "yellow",
-                  "mode": "fixed"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "5xx"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "red",
-                  "mode": "fixed"
-                }
-              }
-            ]
-          }
-        ]
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 24,
-        "x": 0,
-        "y": 7
-      },
-      "id": 13,
-      "options": {
-        "legend": {
-          "calcs": [
-            "sum",
-            "mean",
-            "max"
-          ],
-          "displayMode": "table",
-          "placement": "right",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "pluginVersion": "10.2.0",
-      "targets": [
-        {
-          "alias": "2xx",
-          "bucketAggs": [
-            {
-              "field": "@timestamp",
-              "id": "2",
-              "settings": {
-                "interval": "auto",
-                "min_doc_count": "0"
-              },
-              "type": "date_histogram"
-            }
-          ],
-          "datasource": "Elasticsearch-Logs",
-          "metrics": [
-            {
-              "id": "1",
-              "type": "count"
-            }
-          ],
-          "query": "http_status:[200 TO 299]",
-          "refId": "A",
-          "timeField": "@timestamp"
-        },
-        {
-          "alias": "3xx",
-          "bucketAggs": [
-            {
-              "field": "@timestamp",
-              "id": "2",
-              "settings": {
-                "interval": "auto",
-                "min_doc_count": "0"
-              },
-              "type": "date_histogram"
-            }
-          ],
-          "datasource": "Elasticsearch-Logs",
-          "hide": false,
-          "metrics": [
-            {
-              "id": "1",
-              "type": "count"
-            }
-          ],
-          "query": "http_status:[300 TO 399]",
-          "refId": "B",
-          "timeField": "@timestamp"
-        },
-        {
-          "alias": "4xx",
-          "bucketAggs": [
-            {
-              "field": "@timestamp",
-              "id": "2",
-              "settings": {
-                "interval": "auto",
-                "min_doc_count": "0"
-              },
-              "type": "date_histogram"
-            }
-          ],
-          "datasource": "Elasticsearch-Logs",
-          "hide": false,
-          "metrics": [
-            {
-              "id": "1",
-              "type": "count"
-            }
-          ],
-          "query": "http_status:[400 TO 499]",
-          "refId": "C",
-          "timeField": "@timestamp"
-        },
-        {
-          "alias": "5xx",
-          "bucketAggs": [
-            {
-              "field": "@timestamp",
-              "id": "2",
-              "settings": {
-                "interval": "auto",
-                "min_doc_count": "0"
-              },
-              "type": "date_histogram"
-            }
-          ],
-          "datasource": "Elasticsearch-Logs",
-          "hide": false,
-          "metrics": [
-            {
-              "id": "1",
-              "type": "count"
-            }
-          ],
-          "query": "http_status:[500 TO 599]",
-          "refId": "D",
-          "timeField": "@timestamp"
-        }
-      ],
-      "title": "📊 HTTP статус-коды (временной ряд)",
-      "type": "timeseries"
     },
     {
       "datasource": "Elasticsearch-Logs",
@@ -617,7 +375,7 @@
           }
         ]
       },
-      "pluginVersion": "10.2.0",
+      "pluginVersion": "11.0.0",
       "targets": [
         {
           "datasource": "Elasticsearch-Logs",
@@ -700,7 +458,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "10.2.0",
+      "pluginVersion": "11.0.0",
       "targets": [
         {
           "datasource": "Elasticsearch-Logs",
@@ -812,7 +570,7 @@
         "xTickLabelRotation": 0,
         "xTickLabelSpacing": 0
       },
-      "pluginVersion": "10.2.0",
+      "pluginVersion": "11.0.0",
       "targets": [
         {
           "alias": "",
