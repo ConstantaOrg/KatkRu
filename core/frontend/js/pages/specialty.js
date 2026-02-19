@@ -96,7 +96,7 @@ export async function renderSpecialtyPage(specId) {
                                     <div class="detail-item">
                                         <span class="detail-icon">${getIcon('group')}</span>
                                         <div class="detail-text">
-                                            <p class="detail-label">Бюджетных мест</p>
+                                            <p class="detail-label">Мест на группу</p>
                                             <p class="detail-value">25</p>
                                         </div>
                                     </div>
