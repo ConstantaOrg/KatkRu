@@ -12,20 +12,25 @@ class TimetableQueries:
         self.conn = conn
 
     async def get_ttable(self, group: str | list[str] | None, date):
-        query = f'''
-        SELECT csd.position, dp.title, t.fio, csd.aud FROM cards_states_details csd 
+        query = '''
+        SELECT csd.position, dp.title, t.fio, csd.aud 
+        FROM cards_states_details csd 
+        JOIN cards_states_history csh ON csh.id = csd.card_hist_id
+            AND csh.is_current = true
+            AND csh.status_id IN ($4, $5)
+        JOIN ttable_versions t_v ON t_v.id = csh.sched_ver_id 
+            AND t_v.status_id = $2 
+            AND t_v.is_commited = true
+            AND t_v.schedule_date = $3
+        JOIN groups g ON g.id = csh.group_id 
+            AND g.is_active = true 
+            AND g.name = $1
         JOIN disciplines dp ON dp.id = csd.discipline_id
         JOIN teachers t ON t.id = csd.teacher_id
-        WHERE csd.card_hist_id IN (
-            SELECT csd.id FROM cards_states_history csh
-            JOIN ttable_versions t_v ON t_v.id = csh.sched_ver_id AND t_v.status_id = $2
-            WHERE csh.is_current = true
-              AND csh.group_id = (SELECT g.id FROM groups g WHERE g.is_active = true AND g.name = $1) 
-              AND t_v.schedule_date = $3
-        )
         '''
-        res = await self.conn.fetch(query, group, TimetableVerStatuses.accepted, date)
+        res = await self.conn.fetch(query, group, TimetableVerStatuses.accepted, date, CardsStatesStatuses.draft, CardsStatesStatuses.accepted)
         return res
+
 
     async def teacher_ids(self):
         teachers = await self.conn.fetch('SELECT id, fio FROM teachers')

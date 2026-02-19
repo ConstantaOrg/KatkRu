@@ -20,9 +20,8 @@ class SpecialtiesAllResponse(BaseResponse):
         example=[
             {
                 "id": 1,
-                "name": "Информационные системы и программирование",
-                "code": "09.02.07",
-                "description": "Описание специальности"
+                "title": "Информационные системы и программирование",
+                "spec_code": "09.02.07",
             }
         ]
     )

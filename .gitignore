@@ -182,3 +182,4 @@ dev_docs/
 metrics_endpoint.py
 grafana/provisioning/alerting/contactpoints.yml
 autoban_iptables/Makefile
+core/frontend/images/

@@ -252,24 +252,19 @@ cp .env.example .env
 # 2. .env.test
 ```
 
-3. **Запуск security контейнера (для автобана):**
+3. **Запуск приложения:**
 ```bash
-docker-compose -f docker-compose.security.yml up -d
-```
-
-4. **Запуск основных сервисов:**
-```bash
-docker-compose up -d
+docker-compose -f docker-compose.security.yml -f docker-compose.yml up -d
 ```
 
 **Важно:** Security контейнер должен быть запущен первым, иначе основной контейнер не сможет использовать режим сети Nginx.
 
-5. **Проверка статуса:**
+4. **Проверка статуса:**
 ```bash
 docker-compose ps
 ```
 
-6. **Доступ к сервисам:**
+5. **Доступ к сервисам:**
 - API документация: http://localhost/api/docs
 - Kibana: http://localhost:5601
 - Grafana: http://localhost:3000

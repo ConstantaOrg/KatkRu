@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Страница не найдена - Казанский АТК</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+                'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+                sans-serif;
+            background: linear-gradient(135deg, #1268FF 0%, #005BFB 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .error-container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 0 40px rgba(0, 0, 0, 0.2);
+            padding: 60px 40px;
+            max-width: 600px;
+            text-align: center;
+        }
+
+        .error-code {
+            font-size: 120px;
+            font-weight: 700;
+            color: #1268FF;
+            line-height: 1;
+            margin-bottom: 20px;
+        }
+
+        .error-title {
+            font-size: 32px;
+            font-weight: 600;
+            color: #1B2939;
+            margin-bottom: 15px;
+        }
+
+        .error-message {
+            font-size: 18px;
+            color: #1B2939;
+            opacity: 0.7;
+            line-height: 1.6;
+            margin-bottom: 40px;
+        }
+
+        .error-button {
+            display: inline-block;
+            background: #005BFB;
+            color: white;
+            padding: 15px 40px;
+            border-radius: 15px;
+            font-size: 16px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s;
+            box-shadow: 0 0 4px rgba(0, 0, 0, 0.25);
+        }
+
+        .error-button:hover {
+            background: #1268FF;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .error-footer {
+            margin-top: 40px;
+            padding-top: 30px;
+            border-top: 1px solid #EBEDF0;
+            font-size: 14px;
+            color: #1B2939;
+            opacity: 0.6;
+        }
+
+        @media (max-width: 768px) {
+            .error-code {
+                font-size: 80px;
+            }
+
+            .error-title {
+                font-size: 24px;
+            }
+
+            .error-message {
+                font-size: 16px;
+            }
+
+            .error-container {
+                padding: 40px 30px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="error-container">
+        <div class="error-code">404</div>
+        <h1 class="error-title">Страница не найдена</h1>
+        <p class="error-message">
+            К сожалению, запрашиваемая страница не существует или была перемещена. 
+            Проверьте правильность адреса или вернитесь на главную страницу.
+        </p>
+        <a href="/" class="error-button">Вернуться на главную</a>
+        <div class="error-footer">
+            Казанский авиационно-технический колледж имени П.В.Дементьева
+        </div>
+    </div>
+</body>
+</html>
