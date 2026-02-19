@@ -4,15 +4,15 @@
 # Банит IP если:
 # - Более 100 запросов за минуту
 # - Более 10 ошибок 429 (rate limit) за минуту
-# - Более 20 ошибок 401/403 за минуту
+# - Более 20 ошибок 401 за минуту
 
 NGINX_LOG="/var/log/nginx/access.log"
 BAN_SCRIPT="/app/scripts/manage_bans.sh"
 TEMP_DIR="/tmp/nginx_ban_analysis"
 
 # Пороги для бана
-REQUESTS_THRESHOLD=100
-RATE_LIMIT_THRESHOLD=10
+REQUESTS_THRESHOLD=1000
+RATE_LIMIT_THRESHOLD=20
 AUTH_ERROR_THRESHOLD=20
 
 # Цвета
@@ -62,7 +62,7 @@ fi
 # 3. Поиск IP с частыми ошибками авторизации (401/403)
 echo -e "${YELLOW}Анализ ошибок авторизации (401/403)...${NC}"
 grep "$CURRENT_MINUTE\|$PREV_MINUTE" $NGINX_LOG 2>/dev/null | \
-    grep -E ' (401|403) ' | \
+    grep -E ' 401 ' | \
     awk '{print $1}' | \
     sort | uniq -c | sort -rn | \
     awk -v threshold=$AUTH_ERROR_THRESHOLD '$1 > threshold {print $2, $1}' > $TEMP_DIR/auth_abuse.txt

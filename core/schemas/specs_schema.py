@@ -1,5 +1,3 @@
-from typing import Literal
-
 from pydantic import BaseModel, Field
 
 
@@ -14,9 +12,3 @@ class ExtSpecialitySchema(BaseModel):
 
 class BaseSpecSearchSchema(BaseModel):
     search_term: str
-
-class AutocompleteSearchSchema(BaseSpecSearchSchema):
-    search_mode: Literal["auto"]
-
-class DeepSearchSchema(BaseSpecSearchSchema):
-    search_mode: Literal["deep"]

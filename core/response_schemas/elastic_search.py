@@ -11,7 +11,16 @@ from . import BaseResponse, SuccessResponse
 
 class SearchResultItem(BaseResponse):
     """
-    Элемент результата поиска специальности.
+    Элемент результата полнотекстового поиска специальности.
+    """
+    id: str = Field(..., description="ID специальности")
+    spec_code: str = Field(..., description="Код специальности")
+    title: str = Field(..., description="Название специальности")
+    img_path: str = Field(..., description='Путь к картинке специальности')
+
+class FastSearchResultItem(BaseResponse):
+    """
+    Элемент результата автокомплит поиска специальности.
     """
     id: str = Field(..., description="ID специальности")
     spec_code: str = Field(..., description="Код специальности")
@@ -31,7 +40,7 @@ class AutocompleteSearchResponse(BaseResponse):
     Ответ для POST /public/elastic/autocomplete_spec
     Быстрый поиск специальностей для автодополнения.
     """
-    search_res: Tuple[SearchResultItem, ...] = Field(
+    search_res: Tuple[FastSearchResultItem, ...] = Field(
         ...,
         description="Результаты поиска (до 5 элементов)",
         example=(
@@ -61,17 +70,20 @@ class DeepSearchResponse(BaseResponse):
             {
                 "id": "1",
                 "spec_code": "09.02.07",
-                "title": "Информационные системы и программирование"
+                "title": "Информационные системы и программирование",
+                "img_path": 'any1.png'
             },
             {
                 "id": "2",
                 "spec_code": "09.02.03", 
-                "title": "Программирование в компьютерных системах"
-            },
+                "title": "Программирование в компьютерных системах",
+                 "img_path": 'any1.png'
+        },
             {
                 "id": "3",
                 "spec_code": "10.02.05",
-                "title": "Обеспечение информационной безопасности"
+                "title": "Обеспечение информационной безопасности",
+                "img_path": 'any1.png'
             }
         )
     )

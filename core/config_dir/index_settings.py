@@ -1,5 +1,7 @@
 from typing import Literal
 from core.config_dir.config import env
+from core.utils.anything import SearchModes
+
 
 class SpecIndex:
     aliases = {
@@ -15,13 +17,13 @@ class SpecIndex:
                 # Автокомплит для кодов
                 "code_autocomplete": {
                     "type": "custom",
-                    "tokenizer": "edge_ngram_code",
+                    "tokenizer": "ngram_code",
                     "filter": ["lowercase"]
                 },
                 # Автокомплит для названий
                 "title_autocomplete": {
                     "type": "custom", 
-                    "tokenizer": "edge_ngram_title",
+                    "tokenizer": "ngram_title",
                     "filter": ["lowercase", "russian_stop"]
                 },
                 # Глубокий поиск (стандартный)
@@ -32,16 +34,16 @@ class SpecIndex:
                 }
             },
             "tokenizer": {
-                "edge_ngram_code": {
-                    "type": "edge_ngram",
+                "ngram_code": {
+                    "type": "ngram",
                     "min_gram": 2,
-                    "max_gram": 8,
+                    "max_gram": 2,
                     "token_chars": ["letter", "digit", "punctuation"]
                 },
-                "edge_ngram_title": {
-                    "type": "edge_ngram", 
-                    "min_gram": 2,
-                    "max_gram": 10,
+                "ngram_title": {
+                    "type": "ngram",
+                    "min_gram": 3,
+                    "max_gram": 3,
                     "token_chars": ["letter"]
                 }
             },
@@ -74,13 +76,17 @@ class SpecIndex:
                         "analyzer": "title_autocomplete"
                     }
                 }
+            },
+            'img_path': {
+                'type': 'keyword',
+                'index': False
             }
         }
     }
 
     @staticmethod
-    def search_ptn(search_phrase: str, search_mode: Literal["auto", "deep"]):
-        if search_mode == "auto":
+    def search_ptn(search_phrase: str, search_mode: Literal["auto", "deep"] | str):
+        if search_mode == SearchModes.auto:
             return {
                 "bool": {
                     "should": [

@@ -10,6 +10,7 @@ async def fill_spec_index(records, spec_index, es_obj: AsyncElasticsearch):
         batch.append({
             "code_autocomplete": record['spec_code'],
             "title": record['title'],
+            "img_path": record['img_path'],
         })
 
         "Батч-вставка"
