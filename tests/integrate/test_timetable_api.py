@@ -1,4 +1,5 @@
 import pytest
+from datetime import date
 
 from core.utils.anything import TimetableVerStatuses
 from tests.utils.api_response_validator import APIResponseValidator, ValidationRule
@@ -12,6 +13,28 @@ async def test_public_timetable_get(client, pg_pool, seed_info):
     validator.add_rule(ValidationRule("schedule", list, required=True))
     
     async with pg_pool.acquire() as conn:
+        # Update ttable_versions to be committed so it appears in public API
+        await conn.execute(
+            """
+            UPDATE ttable_versions
+            SET is_commited = true
+            WHERE id = $1
+            """,
+            seed_info["ttable_id"],
+        )
+        
+        # Update cards_states_history status to 'accepted' so it appears in public API
+        await conn.execute(
+            """
+            UPDATE cards_states_history
+            SET status_id = $2
+            WHERE id = $1
+            """,
+            seed_info["hist_id"],
+            seed_info["cards_statuses"]["accepted"],
+        )
+        
+        # Update cards_states_details with test data
         await conn.execute(
             """
             UPDATE cards_states_details
@@ -21,7 +44,7 @@ async def test_public_timetable_get(client, pg_pool, seed_info):
             seed_info["hist_id"],
         )
 
-    body = {"group": "GR1"}
+    body = {"group": "GR1", "date": date.today().isoformat()}
     resp = await client.post("/api/v1/public/ttable/get", json=body)
 
     # Validate response structure
@@ -34,16 +57,19 @@ async def test_public_timetable_get(client, pg_pool, seed_info):
     # Validate business logic: schedule should contain expected data
     schedule = data["schedule"]
     assert isinstance(schedule, list), "Schedule should be a list"
-    assert len(schedule) == 1, "Expected exactly one schedule record"
+    assert len(schedule) >= 1, "Expected at least one schedule record"
     
-    row = schedule[0]
+    # Find the record with aud='201' (the one we updated)
+    updated_row = next((row for row in schedule if row.get("aud") == "201"), None)
+    assert updated_row is not None, "Should find the updated record with aud='201'"
+    
     # Validate essential fields exist
-    assert "position" in row, "Schedule record should have position field"
-    assert "aud" in row, "Schedule record should have aud field"
+    assert "position" in updated_row, "Schedule record should have position field"
+    assert "aud" in updated_row, "Schedule record should have aud field"
     
     # Validate business logic values
-    assert row["position"] == 1, "Position should be 1"
-    assert row["aud"] == "201", "Aud should be '201' (updated value)"
+    assert updated_row["position"] == 1, "Position should be 1"
+    assert updated_row["aud"] == "201", "Aud should be '201' (updated value)"
 
 
 @pytest.mark.asyncio

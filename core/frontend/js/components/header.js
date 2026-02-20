@@ -16,7 +16,7 @@ export function renderHeader() {
                 </a>
                 <nav class="header-nav">
                     <a href="/specialties" data-route="/specialties">Специальности</a>
-                    <a href="/students" data-route="/students">Студентам</a>
+                    <!-- <a href="/students" data-route="/students">Студентам</a> --->
                     <a href="/applicants" data-route="/applicants">Абитуриентам</a>
                     <a href="/methodists" data-route="/methodists">Методистам</a>
                 </nav>

@@ -80,7 +80,7 @@ services:
     networks:
       net_con:
 
-  web_app:
+  test_web_app:
     build:
       context: .
       dockerfile: Dockerfile_test

@@ -96,11 +96,11 @@ async def _truncate_and_seed(conn: asyncpg.Connection):
     # Добавляем тестовые данные для Elasticsearch индексов
     # Specialties (специальности)
     await conn.execute(
-        "INSERT INTO specialties (spec_code, title, learn_years, description, full_time, free_form, evening_form, cost_per_year) VALUES "
-        "('09.02.07', 'Информационные системы и программирование', 3, 'Подготовка специалистов по разработке ИС', true, true, false, 120000), "
-        "('09.02.03', 'Программирование в компьютерных системах', 3, 'Подготовка программистов', true, true, false, 115000), "
-        "('10.02.05', 'Обеспечение информационной безопасности', 3, 'Подготовка специалистов по ИБ', true, false, false, 130000), "
-        "('38.02.01', 'Экономика и бухгалтерский учет', 2, 'Подготовка бухгалтеров', true, true, true, 100000)"
+        "INSERT INTO specialties (spec_code, title, learn_years, description, full_time, free_form, evening_form, cost_per_year, img_path) VALUES "
+        "('09.02.07', 'Информационные системы и программирование', 3, 'Подготовка специалистов по разработке ИС', true, true, false, 120000, '1.jpg'), "
+        "('09.02.03', 'Программирование в компьютерных системах', 3, 'Подготовка программистов', true, true, false, 115000, '2.jpg'), "
+        "('10.02.05', 'Обеспечение информационной безопасности', 3, 'Подготовка специалистов по ИБ', true, false, false, 130000, '3.jpg'), "
+        "('38.02.01', 'Экономика и бухгалтерский учет', 2, 'Подготовка бухгалтеров', true, true, true, 100000, '4.jpg')"
     )
     
     # Groups (группы)
