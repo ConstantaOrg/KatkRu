@@ -50,12 +50,14 @@ async def test_save_card_blocked_on_committed_version(client, seed_info, pg_pool
         json={
             "card_hist_id": hist_id,
             "ttable_id": ttv_id,
+            "week_day": None,
             "lessons": [
                 {
                     "position": 1,
                     "discipline_id": seed_info["discipline_id"],
                     "teacher_id": seed_info["teacher_id"],
                     "aud": "201",
+                    "week_day": None,
                     "is_force": False
                 }
             ]
@@ -214,6 +216,7 @@ async def test_bulk_add_cards_empty_lessons(client, seed_info, pg_pool):
         "/api/v1/private/n8n_ui/cards/bulk_add",
         json={
             "ttable_id": ttv_id,
+            "week_day": None,
             "group_names": [g_name],
             "lessons": []
         }
@@ -264,6 +267,7 @@ async def test_bulk_add_cards_with_lessons(client, seed_info, pg_pool):
         "/api/v1/private/n8n_ui/cards/bulk_add",
         json={
             "ttable_id": ttv_id,
+            "week_day": None,
             "group_names": [g1_name],
             "lessons": [
                 {
@@ -271,6 +275,7 @@ async def test_bulk_add_cards_with_lessons(client, seed_info, pg_pool):
                     "discipline_id": seed_info["discipline_id"],
                     "teacher_id": seed_info["teacher_id"],
                     "aud": "301",
+                    "week_day": None,
                     "is_force": False
                 },
                 {
@@ -278,6 +283,7 @@ async def test_bulk_add_cards_with_lessons(client, seed_info, pg_pool):
                     "discipline_id": seed_info["discipline_id"],
                     "teacher_id": seed_info["teacher_id"],
                     "aud": "302",
+                    "week_day": None,
                     "is_force": False
                 }
             ]
@@ -294,6 +300,7 @@ async def test_bulk_add_cards_with_lessons(client, seed_info, pg_pool):
         "/api/v1/private/n8n_ui/cards/bulk_add",
         json={
             "ttable_id": ttv_id,
+            "week_day": None,
             "group_names": [g2_name],
             "lessons": [
                 {
@@ -301,6 +308,7 @@ async def test_bulk_add_cards_with_lessons(client, seed_info, pg_pool):
                     "discipline_id": seed_info["discipline_id"],
                     "teacher_id": t2_id,
                     "aud": "401",
+                    "week_day": None,
                     "is_force": False
                 },
                 {
@@ -308,6 +316,7 @@ async def test_bulk_add_cards_with_lessons(client, seed_info, pg_pool):
                     "discipline_id": seed_info["discipline_id"],
                     "teacher_id": t2_id,
                     "aud": "402",
+                    "week_day": None,
                     "is_force": False
                 }
             ]
@@ -345,6 +354,7 @@ async def test_bulk_add_cards_group_not_found(client, seed_info, pg_pool):
         "/api/v1/private/n8n_ui/cards/bulk_add",
         json={
             "ttable_id": ttv_id,
+            "week_day": None,
             "group_names": ["NONEXISTENT_GROUP_XYZ"],
             "lessons": []
         }
@@ -380,6 +390,7 @@ async def test_bulk_add_cards_blocked_on_committed_version(client, seed_info, pg
         "/api/v1/private/n8n_ui/cards/bulk_add",
         json={
             "ttable_id": ttv_id,
+            "week_day": None,
             "group_names": [g_name],
             "lessons": []
         }

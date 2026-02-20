@@ -33,7 +33,7 @@ async def create_ttable(body: ExtCardStateSchema, db: PgSqlDep, request: Request
 })
 async def save_card(body: SaveCardSchema, db: PgSqlDep, request: Request, _: JWTCookieDep):
     """Сохранить карточку"""
-    new_card_hist_id = await db.n8n_ui.save_card(body.card_hist_id, body.ttable_id, request.state.user_id, body.lessons)
+    new_card_hist_id = await db.n8n_ui.save_card(body.card_hist_id, body.ttable_id, request.state.user_id, body.week_day, body.lessons)
 
     if not new_card_hist_id:
         log_event(f"Попытка изменить утверждённую версию расписания | old_card_hist_id: \033[32m{body.card_hist_id}\033[0m; sched_ver_id: \033[35m{body.ttable_id}\033[0m; user_id: \033[33m{request.state.user_id}\033[0m",request=request, level='WARNING')
@@ -117,7 +117,7 @@ async def switch_card_status(body: EditCardSchema, db: PgSqlDep, _: JWTCookieDep
 @router.post('/bulk_add', dependencies=[Depends(role_require(Roles.methodist))])
 async def bulk_add_cards_(body: BulkCardsSchema, db: PgSqlDep, request: Request, _: JWTCookieDep):
     """Бульк вставка. Для вставки через UI и для вставки из буфера обмена (Ctrl + V)"""
-    cards_ids, msg = await db.n8n_ui.bulk_add_cards(body.ttable_id, request.state.user_id, body.group_names, body.lessons)
+    cards_ids, msg = await db.n8n_ui.bulk_add_cards(body.ttable_id, request.state.user_id, body.week_day, body.group_names, body.lessons)
 
     if cards_ids is None:
         log_event(f'Попытка добавить карточки в утверждённую версию | ttable_id: \033[35m{body.ttable_id}\033[0m; groups: {body.group_names}; user_id: \033[33m{request.state.user_id}\033[0m',request=request, level='WARNING')

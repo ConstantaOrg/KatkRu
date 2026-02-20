@@ -114,12 +114,14 @@ async def test_cards_save_multi_response_validation(client, seed_info):
     success_payload = {
         "card_hist_id": seed_info["hist_id"],
         "ttable_id": seed_info["ttable_id"],
+        "week_day": None,
         "lessons": [
             {
                 "position": 3,  # Different position to avoid conflict (seed has 1 and 2)
                 "discipline_id": seed_info["discipline_id"],
                 "teacher_id": seed_info["teacher_id"],
                 "aud": "303",
+                "week_day": None,
                 "is_force": False,
             }
         ],
@@ -140,31 +142,34 @@ async def test_cards_save_multi_response_validation(client, seed_info):
     assert response_data["success"] is True, "Expected successful save"
     assert "new_card_hist_id" in response_data, "Expected new card history ID"
     
-    # Test conflict scenario
-    conflict_payload = {
+    # Test scenario with same position - should succeed because it creates a new card version
+    same_position_payload = {
         "card_hist_id": seed_info["hist_id"],
         "ttable_id": seed_info["ttable_id"],
+        "week_day": None,
         "lessons": [
             {
-                "position": 1,  # Same position as existing - should conflict
+                "position": 1,  # Same position as existing - creates new card version
                 "discipline_id": seed_info["discipline_id"],
                 "teacher_id": seed_info["teacher_id"],
                 "aud": "303",
+                "week_day": None,
                 "is_force": False,
             }
         ],
     }
     
-    conflict_resp = await client.post("/api/v1/private/n8n_ui/cards/save", json=conflict_payload)
-    conflict_data = conflict_resp.json()
+    same_pos_resp = await client.post("/api/v1/private/n8n_ui/cards/save", json=same_position_payload)
+    same_pos_data = same_pos_resp.json()
     
-    # Validate conflict response structure (only check required fields)
-    conflict_result = validator.validate_response(conflict_data)
-    assert conflict_result.is_valid, f"Conflict response validation failed: {conflict_result.errors}"
+    # Validate response structure (only check required fields)
+    same_pos_result = validator.validate_response(same_pos_data)
+    assert same_pos_result.is_valid, f"Response validation failed: {same_pos_result.errors}"
     
-    # Verify business logic: conflict should have success=False
-    assert conflict_data["success"] is False, "Expected conflict response"
-    assert "conflicts" in conflict_data, "Expected conflicts information"
+    # Verify business logic: should succeed because it creates a new card version
+    # The old card is deactivated (is_current = false), so no conflict
+    assert same_pos_data["success"] is True, "Expected successful save (new card version)"
+    assert "new_card_hist_id" in same_pos_data, "Expected new_card_hist_id"
 
 
 @pytest.mark.asyncio

@@ -57,21 +57,48 @@ class TimetableQueries:
         lessons_to_insert = await raw_values2db_ids_handler(std_ttable, ttable_ver_id, self)
         log_event(f"Зафиксировали импорт №{ttable_ver_id}. Вливаем данные")
 
-        await self.conn.copy_records_to_table(
-            'std_ttable',
-            records=lessons_to_insert,
-            columns=[
-                'sched_ver_id',
-                'group_id',
-                'discipline_id',
-                'position',
-                'aud',
-                'teacher_id',
-                'week_day'
-            ]
+        # Группируем уроки по (group_id, week_day) для создания карточек
+        from collections import defaultdict
+        cards_map = defaultdict(list)  # {(group_id, week_day): [lessons]}
+        
+        for lesson in lessons_to_insert:
+            sched_ver_id, group_id, discipline_id, position, aud, teacher_id, week_day = lesson
+            cards_map[(group_id, week_day)].append({
+                'discipline_id': discipline_id,
+                'position': position,
+                'aud': aud,
+                'teacher_id': teacher_id
+            })
+        
+        # Деактивируем старые карточки для этой версии
+        await self.conn.execute(
+            'UPDATE cards_states_history SET is_current = false WHERE sched_ver_id = $1 AND is_current = true',
+            ttable_ver_id
         )
+        
+        # Создаём карточки и их детали
+        for (group_id, week_day), lessons in cards_map.items():
+            # Создаём карточку в cards_states_history
+            card_hist_id = await self.conn.fetchval(
+                'INSERT INTO cards_states_history (sched_ver_id, user_id, status_id, group_id, is_current, week_day) '
+                'VALUES ($1, $2, $3, $4, true, $5) RETURNING id',
+                ttable_ver_id, user_id, CardsStatesStatuses.draft, group_id, week_day
+            )
+            
+            # Вставляем детали карточки с ON CONFLICT DO NOTHING для игнорирования конфликтов преподавателей
+            for lesson in lessons:
+                await self.conn.execute(
+                    '''
+                    INSERT INTO cards_states_details (card_hist_id, discipline_id, position, aud, teacher_id, sched_ver_id, is_force, week_day)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                    ON CONFLICT (sched_ver_id, teacher_id, position, week_day) WHERE is_force = false DO NOTHING
+                    ''',
+                    card_hist_id, lesson['discipline_id'], lesson['position'], lesson['aud'], 
+                    lesson['teacher_id'], ttable_ver_id, False, week_day
+                )
+        
         await self.conn.execute('COMMIT')
-        log_event(f"Влили данные в расписание №{ttable_ver_id}. Транзакция успешна")
+        log_event(f"Влили данные в расписание №{ttable_ver_id}. Создано карточек: {len(cards_map)}. Транзакция успешна")
         return ttable_ver_id
 
     async def create(self, building_id: int, date: date_type | None, type_: str, status: int, user_id: int):

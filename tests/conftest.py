@@ -157,6 +157,29 @@ async def _truncate_and_seed(conn: asyncpg.Connection):
         )
     )["id"]
 
+    # Создаём карточку стандартного расписания с week_day = 1 (вторник)
+    std_hist_id = (
+        await conn.fetchrow(
+            "INSERT INTO cards_states_history (sched_ver_id, user_id, status_id, is_current, group_id, week_day) "
+            "VALUES ($1, $2, $3, true, $4, 1) RETURNING id",
+            std_sched_id,
+            user_id,
+            cards_statuses["accepted"],
+            group_id,
+        )
+    )["id"]
+
+    # Добавляем урок в стандартное расписание
+    await conn.execute(
+        "INSERT INTO cards_states_details (card_hist_id, discipline_id, position, aud, teacher_id, sched_ver_id, is_force, week_day) "
+        "VALUES ($1, $2, 1, '201', $3, $4, false, 1)",
+        std_hist_id,
+        discipline_id,
+        teacher_id,
+        std_sched_id,
+    )
+
+    # Оставляем старую таблицу std_ttable для обратной совместимости
     await conn.execute(
         "INSERT INTO std_ttable (sched_ver_id, group_id, discipline_id, position, aud, teacher_id, week_day) "
         "VALUES ($1, $2, $3, 1, '201', $4, 1)",
@@ -190,8 +213,8 @@ async def _truncate_and_seed(conn: asyncpg.Connection):
 
     # Добавляем 2 урока, чтобы карточка могла быть утверждена (минимум accept_card_constraint = 2)
     await conn.execute(
-        "INSERT INTO cards_states_details (card_hist_id, discipline_id, position, aud, teacher_id, sched_ver_id, is_force) "
-        "VALUES ($1, $2, 1, '101', $3, $4, false), ($1, $2, 2, '102', $3, $4, false)",
+        "INSERT INTO cards_states_details (card_hist_id, discipline_id, position, aud, teacher_id, sched_ver_id, is_force, week_day) "
+        "VALUES ($1, $2, 1, '101', $3, $4, false, NULL), ($1, $2, 2, '102', $3, $4, false, NULL)",
         hist_id,
         discipline_id,
         teacher_id,

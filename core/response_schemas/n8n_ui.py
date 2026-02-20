@@ -18,6 +18,7 @@ class StdLessonItem(BaseModel):
     name: str = Field(..., description="Название группы")
     position: int = Field(..., description="Позиция урока (номер пары)")
     title: str = Field(..., description="Название дисциплины")
+    week_day: int | None = Field(..., description='День недели от 0 до 5. None - значит карточка из замен')
     is_force: bool = Field(False, description="Принудительное назначение")
     
     class Config:
@@ -33,6 +34,7 @@ class LessonItem(BaseModel):
     position: int = Field(..., description="Позиция урока (номер пары)")
     discipline_id: int = Field(..., description="ID дисциплины")
     title: str = Field(..., description="Название дисциплины")
+    week_day: int | None = Field(..., description='День недели от 0 до 5. None - значит карточка из замен')
     is_force: bool = Field(False, description="Принудительное назначение")
     
     class Config:
@@ -71,7 +73,9 @@ class CardContentItem(BaseModel):
     discipline_title: str = Field(..., description="Название дисциплины")
     teacher_id: int = Field(..., description="ID преподавателя")
     teacher_name: str = Field(..., description="ФИО преподавателя")
-    
+    week_day: int | None = Field(None, description="День недели от 0 до 5. None - значит карточка из замен")
+    is_force: bool = Field(False, description="Принудительная постановка")
+
     class Config:
         from_attributes = True
 
@@ -171,7 +175,7 @@ class CurrentTtableGetAllResponse(BaseResponse):
                 "teacher_name": "Иванов И.И.",
                 "group_id": 2,
                 "group_name": "ИС-21-1",
-                "auditorium": "101",
+                "aud": "101",
                 "is_force": True
             }
         ]
@@ -191,7 +195,8 @@ class CardsGetByIdResponse(BaseResponse):
                 "position": 1,
                 "teacher_name": "Иванов И.И.",
                 "teacher_id": 1,
-                "aud": "101"
+                "aud": "101",
+                "week_day": None,
             }
         ]
     )
@@ -322,7 +327,6 @@ __all__ = [
     "CardContentItem",
     "ExtCardItem",
     "ConflictItem",
-    "DiffItem",
     "TtableCreateResponse",
     "CardsAcceptResponse",
     "StdTtableGetAllResponse",
