@@ -1,16 +1,15 @@
 # 🏫 KatkRu
 
-![Python](https://img.shields.io/badge/Python-3.12-3776AB?style=flat&logo=python&logoColor=white)
+![Python](https://img.shields.io/badge/Python-3.12.8-3776AB?style=flat&logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.115.0-009688?style=flat&logo=fastapi&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?style=flat&logo=postgresql&logoColor=white)
 ![Elasticsearch](https://img.shields.io/badge/Elasticsearch-9.0.2-005571?style=flat&logo=elasticsearch&logoColor=white)
 ![Redis](https://img.shields.io/badge/Redis-7.4-DC382D?style=flat&logo=redis&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-2.Х-2496ED?style=flat&logo=docker&logoColor=white)
 ![Nginx](https://img.shields.io/badge/Nginx-1.28.0-009639?style=flat&logo=nginx&logoColor=white)
-![Grafana](https://img.shields.io/badge/Grafana-11.1.0-F46800?style=flat&logo=grafana&logoColor=white)
+![Grafana](https://img.shields.io/badge/Grafana-11.0.0-F46800?style=flat&logo=grafana&logoColor=white)
 ![Test Coverage](https://img.shields.io/badge/Coverage-91%25-brightgreen?style=flat&logo=pytest&logoColor=white)
 
-Система управления расписанием учебного заведения с веб-интерфейсом для методистов и студентов. Разработана для Колледжа автоматизации и информационных технологий им. П.В. Дементьева, но может быть адаптирована для других учебных заведений.
 
 ## 📋 Описание
 

@@ -171,3 +171,11 @@ docs/
 dev_docs/
 test_output/
 secrets/keys
+.coveragerc
+filebeat.yml
+katkru_server.conf
+nginx.conf
+*.md
+.env.*
+.kiro/
+grafana/

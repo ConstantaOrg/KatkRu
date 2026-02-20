@@ -34,11 +34,11 @@ async def test_specialties_get(client, pg_pool):
     # ensure at least one specialty exists
     async with pg_pool.acquire() as conn:
         spec_id = await conn.fetchval(
-            "INSERT INTO specialties (spec_code, title, learn_years, description, full_time, free_form, evening_form, cost_per_year) "
-            "VALUES ('99.99', 'SpecTest', 4, 'desc', true, false, false, 10000) RETURNING id"
+            "INSERT INTO specialties (spec_code, title, learn_years, description, full_time, free_form, evening_form, cost_per_year, img_path) "
+            "VALUES ('99.99', 'SpecTest', 4, 'desc', true, false, false, 10000, '5.jpg') RETURNING id"
         )
     
-    resp = await client.get(f"/api/v1/public/specialties/{spec_id}")
+    resp = await client.get(f"/api/v1/public/specialties/{spec_id}?lite=false")
     
     # Validate response structure
     assert resp.status_code == 200

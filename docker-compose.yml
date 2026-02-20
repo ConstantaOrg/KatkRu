@@ -49,8 +49,8 @@ services:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "curl -s -I http://localhost:5601 | grep -q 'HTTP/1.1 302 Found'"]
-#      interval: 2m  в проде
-      interval: 10s
+      interval: 2m # в проде
+#      interval: 10s
       timeout: 10s
       retries: 15
     volumes:
@@ -77,8 +77,8 @@ services:
       - ./logs:/app/logs:ro
     healthcheck:
       test: ["CMD-SHELL", "filebeat test config"]
-#      interval: 1m в проде
-      interval: 30s
+      interval: 1m #в проде
+#      interval: 30s
       timeout: 10s
       retries: 5
     depends_on:
